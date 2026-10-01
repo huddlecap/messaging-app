@@ -1,0 +1,82 @@
+# Messaging App Backend
+
+Backend-only messaging API: user registration/login with session cookies, direct message history over REST, and real-time 1:1 messaging over WebSocket — with read receipts and idempotent message delivery.
+
+## Tech Stack
+
+- **Runtime:** Node.js (CommonJS)
+- **Framework:** Express 5
+- **Database:** PostgreSQL (Neon) via `pg`
+- **Real-time:** `ws` WebSocket server
+- **Auth:** session cookie (`httpOnly`, `sameSite=strict`), passwords hashed with `bcrypt`
+- **Tests:** Jest + Supertest (37 tests, 6 suites)
+- **Dev:** nodemon
+
+## Setup
+
+```bash
+cd backend
+npm install
+```
+
+Create `backend/.env` with:
+
+| Variable | Purpose |
+|----------|---------|
+| `DATABASE_URL` | PostgreSQL connection string (dev/production branch) |
+| `PORT` | HTTP server port |
+
+`.env.test` (test-branch `DATABASE_URL`) is loaded automatically when `NODE_ENV=test`. Both files are gitignored — never commit them.
+
+Run the dev server:
+
+```bash
+npm run dev
+```
+
+## Testing
+
+```bash
+npm test
+```
+
+Runs all 6 suites (37 tests) against the test database and must exit 0. Testing rules and quirks (shared DB, `--runInBand`, rate-limiter opt-in, etc.) are documented in [AGENTS.md](AGENTS.md).
+
+## Architecture
+
+- `src/app.js` — Express app (middleware, routes, error handling); `src/index.js` — startup, WebSocket wiring, graceful shutdown
+- `src/ws/index.js` — session-cookie auth on upgrade, one socket per user, heartbeats, read receipts, `client_message_id` dedup
+- `src/validation.js` — single source of input rules for HTTP + WS
+- `src/db/` — pool, schema (`schema.sql` mirrors the live DB), hourly session cleanup
+
+File-by-file map: [Project_Structure.md](Project_Structure.md) · Full technical log: [Progress.md](Progress.md)
+
+## API
+
+**Auth** (`/api/auth`)
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `POST` | `/api/auth/register` | Create account (rate-limited: 5/hour) |
+| `POST` | `/api/auth/login` | Start session, sets `session_id` cookie (rate-limited: 10 per 15 min) |
+| `POST` | `/api/auth/logout` | Delete session, clear cookie |
+| `GET`  | `/api/auth/me` | Current user (requires session) |
+
+**Messages** (`/api/messages`, requires session)
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/api/messages/:otherUserId` | Conversation history, cursor pagination (`?limit=`, `?before=`) |
+
+**WebSocket** — connect with the `session_id` cookie, then exchange JSON:
+
+| Type | Direction | Purpose |
+|------|-----------|---------|
+| `{ type: "message", receiver_id, content, client_message_id }` | client → server | Send message (persisted before delivery; duplicate `client_message_id` returns the original) |
+| `{ type: "read_receipt", message_id }` | client → server | Mark received; sender is notified |
+| `{ type: "message", … }` / `{ type: "read_receipt", … }` | server → client | Delivery and receipt notifications |
+| `{ type: "error", message }` | server → client | Validation / send failure |
+
+## Not Yet Implemented
+
+No offline delivery queue, presence/typing indicators, group chats, attachments, CORS, or HTTPS (`secure: false` cookie). Full list: [Progress.md](Progress.md) §7.
