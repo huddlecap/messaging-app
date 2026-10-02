@@ -547,3 +547,19 @@
   logging back in restores the shell with "Connected" and the user picker.
   oxlint clean, vite build passes
 - Backend untouched this step — 7 suites / 41 tests still stand from step 35
+
+## 43. End-to-end verification + backend tests
+
+- Backend tests re-run from backend/: npm test → 7 passed suites, 41 passed
+  tests, exit 0 (~35 s). No backend changes in steps 8–10, so the green
+  state from step 35 held
+- Manual E2E walkthrough covered by the step 8–10 gates: login → shell with
+  "Connected"; conversation loads history oldest-first or "No messages yet."
+  and fires GET /api/messages/<id> on switch; live messages append without
+  duplicates (dedup Set); composer generates a fresh crypto.randomUUID()
+  client_message_id per send and disables Send while the socket is down or
+  the input is empty; logout clears session_id and returns to the auth
+  screen; re-login restores the shell
+- Frontend untouched this step — oxlint and vite build were clean at the
+  end of step 10. All Phase 2 checklist items (0–11) are ticked
+- Backend untouched this step — 7 suites / 41 tests still green

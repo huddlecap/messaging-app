@@ -54,7 +54,7 @@ for a real user in a browser.
 - [x] Message composer (client_message_id per send, disabled while socket is
       down)
 - [x] Logout
-- [ ] Manual end-to-end verification; backend tests green
+- [x] Manual end-to-end verification; backend tests green
 
 Done when: register, login, send/receive live, view history, and logout all
 work through the UI.
