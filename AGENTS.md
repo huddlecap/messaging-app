@@ -79,6 +79,9 @@ Frontend (run from `frontend/`):
 - `POST /api/auth/register` returns `201` and **does not create a session**
   (only `/login` sets `session_id`, `authRoutes.js`). Never treat a successful
   register as a signed-in state.
+- `frontend/src/components/UserPicker.jsx` fetches `/api/users` on mount and
+  calls `onSelect(user)` when a username is clicked. App.jsx holds the
+  selected user in state.
 
 ## Invariants
 - **`src/db/schema.sql` must mirror the live DB** (verified against

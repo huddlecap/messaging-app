@@ -128,6 +128,50 @@ button.link {
   text-decoration: underline;
 }
 
+.status {
+  color: var(--text);
+  font-size: 15px;
+}
+
+.user-picker {
+  margin-top: 24px;
+  text-align: left;
+}
+
+.user-picker h2 {
+  font-size: 18px;
+  margin: 0 0 12px;
+}
+
+.user-picker ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.user-picker button {
+  width: 100%;
+  text-align: left;
+  margin-top: 0;
+  padding: 10px 12px;
+  background: var(--bg);
+  color: var(--text-h);
+  border: 1px solid var(--border);
+}
+
+.user-picker button:hover {
+  border-color: var(--accent);
+}
+
+.user-picker button.selected {
+  background: var(--accent-bg);
+  border-color: var(--accent);
+  color: var(--text-h);
+}
+
 .notice {
   margin: 0 0 12px;
   color: var(--accent);

@@ -49,7 +49,7 @@ for a real user in a browser.
       shown, session check on load)
 - [ ] WebSocket client (reconnect with backoff, replaced-tab handling,
       session check, no reconnect on intentional close)
-- [ ] User picker
+- [x] User picker
 - [ ] Conversation view (first 50 messages, live append, no duplicates)
 - [ ] Message composer (client_message_id per send, disabled while socket is
       down)

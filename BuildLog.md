@@ -468,3 +468,20 @@
   in; bad input is caught client-side with two inline errors and **no
   request in the Network tab**. oxlint clean, `vite build` 18 modules
 - Backend untouched this step — 7 suites / 41 tests still stand from step 35
+
+## 39. User picker
+
+- components/UserPicker.jsx fetches api.listUsers() on mount and renders the
+  result as a vertical list of buttons. Loading, error and empty states are
+  handled explicitly — "Loading users…", the backend's error message, and
+  "No other users yet." — so the component never renders a blank list
+- Selection is local state: the clicked button gets a .selected class and
+  App.jsx receives the user via onSelect, which renders a "Chatting with
+  …" line. Kept deliberately small — the conversation view (step 8) will
+  replace that line with the actual message list
+- The cancelled flag on the fetch guards against setState after unmount,
+  matching the pattern already used in App.jsx
+- Gate: picker loads with the expected usernames after login; clicking one
+  highlights it and shows "Chatting with <username>". oxlint clean,
+  vite build passes
+- Backend untouched this step — 7 suites / 41 tests still stand from step 35
