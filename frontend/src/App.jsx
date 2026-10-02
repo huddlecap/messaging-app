@@ -3,6 +3,7 @@ import * as api from './api.js'
 import AuthScreen from './components/AuthScreen.jsx'
 import { createSocketClient } from './wsClient.js'
 import UserPicker from './components/UserPicker.jsx'
+import Conversation from './components/Conversation.jsx'
 
 const STATUS_TEXT = {
   checking: 'Checking session…',
@@ -17,6 +18,8 @@ function App() {
   const [socketState, setSocketState] = useState({ status: 'idle' })
   const [replacedFor, setReplacedFor] = useState(null)
   const [selectedUser, setSelectedUser] = useState(null)
+  const [messages, setMessages] = useState([])
+  const messageIdsRef = useRef(new Set())
   const clientRef = useRef(null)
 
   useEffect(() => {
@@ -48,7 +51,15 @@ function App() {
       checkSession: api.me,
       onStatus: (status, detail) => setSocketState({ status, detail }),
       onReplaced: () => setReplacedFor(user.id),
-      onMessage: (payload) => console.log('ws message', payload),
+      onMessage: (payload) => {
+        if (payload && payload.id && payload.content) {
+          const id = payload.id
+          if (!messageIdsRef.current.has(id)) {
+            messageIdsRef.current.add(id)
+            setMessages((prev) => [...prev, payload])
+          }
+        }
+      },
     })
 
     clientRef.current = client
@@ -59,6 +70,32 @@ function App() {
       clientRef.current = null
     }
   }, [user])
+
+  useEffect(() => {
+    if (!selectedUser) {
+      messageIdsRef.current = new Set()
+      return undefined
+    }
+
+    let cancelled = false
+    messageIdsRef.current = new Set()
+
+    api.history(selectedUser.id).then(
+      (data) => {
+        if (cancelled) return
+        const msgs = data.messages || []
+        messageIdsRef.current = new Set(msgs.map((m) => m.id))
+        setMessages(msgs.reverse())
+      },
+      (err) => {
+        if (!cancelled) console.error('Failed to load history:', err)
+      },
+    )
+
+    return () => {
+      cancelled = true
+    }
+  }, [selectedUser])
 
   if (user === undefined) {
     return <main className="checking">Checking session…</main>
@@ -90,7 +127,11 @@ function App() {
       </p>
       <UserPicker onSelect={setSelectedUser} />
       {selectedUser && (
-        <p className="status">Chatting with {selectedUser.username}</p>
+        <Conversation
+          messages={messages}
+          currentUser={user}
+          otherUser={selectedUser}
+        />
       )}
     </main>
   )

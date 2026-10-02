@@ -485,3 +485,26 @@
   highlights it and shows "Chatting with <username>". oxlint clean,
   vite build passes
 - Backend untouched this step — 7 suites / 41 tests still stand from step 35
+
+## 40. Conversation view
+
+- components/Conversation.jsx is presentational: it receives messages,
+  currentUser and otherUser, and renders the list. Sent vs received is
+  decided by comparing sender_id with currentUser.id, which keeps the
+  component free of any fetching or socket logic
+- App.jsx owns the messages state and a messageIdsRef Set for dedup. The
+  history effect fires on selectedUser change: it resets the dedup set,
+  fetches api.history(otherUserId), and reverses the result because the
+  backend returns newest-first (id DESC) while the UI shows oldest-first
+- Live messages arrive through the WS onMessage callback. A payload counts
+  as a message when it has both id and content — read receipts carry a type
+  field instead and are ignored here, since receipt UI is out of scope.
+  The dedup check is a Set lookup, so a message that arrives both via
+  history and via the live broadcast is appended once
+- The history effect's cleanup sets cancelled, and the dedup set is reset
+  on every selectedUser change, so switching conversations can't leak
+  ids from the previous one
+- Gate: selecting a user shows the "Chat with <name>" section with either
+  the message list or "No messages yet."; switching users fires
+  GET /api/messages/<id> with status 200. oxlint clean, vite build passes
+- Backend untouched this step — 7 suites / 41 tests still stand from step 35

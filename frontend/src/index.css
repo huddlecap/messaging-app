@@ -172,6 +172,58 @@ button.link {
   color: var(--text-h);
 }
 
+.conversation {
+  margin-top: 24px;
+  text-align: left;
+}
+
+.conversation h2 {
+  font-size: 18px;
+  margin: 0 0 12px;
+}
+
+.messages {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 400px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.message {
+  max-width: 70%;
+  padding: 8px 12px;
+  border-radius: 12px;
+  font-size: 15px;
+}
+
+.message .content {
+  margin: 0;
+  color: var(--text-h);
+}
+
+.message .time {
+  display: block;
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--text);
+}
+
+.message.sent {
+  align-self: flex-end;
+  background: var(--accent-bg);
+  border: 1px solid var(--accent-border);
+}
+
+.message.received {
+  align-self: flex-start;
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+}
+
 .notice {
   margin: 0 0 12px;
   color: var(--accent);

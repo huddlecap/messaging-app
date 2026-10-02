@@ -82,6 +82,9 @@ Frontend (run from `frontend/`):
 - `frontend/src/components/UserPicker.jsx` fetches `/api/users` on mount and
   calls `onSelect(user)` when a username is clicked. App.jsx holds the
   selected user in state.
+- `frontend/src/components/Conversation.jsx` is presentational — App.jsx
+  owns the messages state and dedups by message id in a ref Set. The
+  backend returns history newest-first; the UI reverses it to oldest-first.
 
 ## Invariants
 - **`src/db/schema.sql` must mirror the live DB** (verified against
