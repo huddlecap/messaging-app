@@ -45,7 +45,7 @@ for a real user in a browser.
 - [x] Frontend scaffold (Vite + React) with dev proxy for /api and /ws;
       session cookie and WebSocket verified through the proxy
 - [x] API client (fetch wrapper, error handling, central 401 handling)
-- [ ] Auth screen and app shell (register/login, client validation, errors
+- [x] Auth screen and app shell (register/login, client validation, errors
       shown, session check on load)
 - [ ] WebSocket client (reconnect with backoff, replaced-tab handling,
       session check, no reconnect on intentional close)

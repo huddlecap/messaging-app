@@ -201,4 +201,5 @@ Source: `src/ws/index.js`
 - No `updated_at`, `deleted_at`, `last_seen`/`online`, `attachment_url`, `subject`/`title` columns anywhere.
 
 **Frontend:**
-- No `.html`, `.css`, `.jsx`, `.tsx` or any frontend files — backend-only codebase.
+- No frontend tests (Phase 3); verification so far is manual via the browser plus `oxlint` and `vite build`.
+- No logout button yet (Step 10), no read-receipt UI, no presence/typing indicators, no pagination UI — history is the first 50 messages.

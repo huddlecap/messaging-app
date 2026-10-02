@@ -417,3 +417,54 @@
   a bad password produced both the handler log and
   ['ApiError', 401, 'Invalid username or password']
 - Backend untouched this step — 7 suites / 41 tests still stand from step 35
+
+## 38. Auth screen and app shell
+
+- App.jsx is now a three-state shell: `undefined` (probing), `null` (no
+  session), object (signed in). On mount it calls api.me() once and a 401
+  lands on the auth screen silently — "not logged in yet" isn't an error, so
+  no error banner on first load. The cancelled flag guards the async result
+  against StrictMode's double-mount in dev
+- One useEffect registers the 401 hook (setUnauthorizedHandler → clear the
+  user) and unregisters it on unmount. From here on any 401 anywhere in the
+  app drops back to the auth screen, which is what the session-expiry and
+  logout steps will ride on
+- components/AuthScreen.jsx: login/register toggle, labelled inputs, submit
+  disabled while pending, inline field errors and the server message shown
+  verbatim. Client validation mirrors backend/src/validation.js — username
+  trimmed 3-50, password >=8 chars and <=72 **bytes** via TextEncoder (the
+  backend uses Buffer.byteLength, so .length would accept multi-byte
+  passwords the server then rejects). Login mode only checks non-empty,
+  matching validateLogin
+- Deleted the dead scaffold: App.css (184 lines of Vite demo styling), the
+  three src/assets images, and public/icons.svg. public/favicon.svg stays,
+  index.html references it. index.css keeps the :root colour variables (plus
+  a new --error for both schemes) and loses the demo rules — the template had
+  pinned #root to 1126px with a 56px h1, which fought the form layout
+- **Trap found by the gate, worth remembering: register does not create a
+  session.** authRoutes.js sets session_id only in the login handler (line
+  67), so the first version of AuthScreen — which called onAuthenticated()
+  after register — dropped the user into a "Signed in as …" shell with no
+  cookie behind it. It looked correct and was a lie: any API call would 401
+  and a reload would bounce back to the form. Fixed to option A — after
+  register the form flips to login with the username prefilled, password
+  cleared, and an "Account created — log in" notice. Chosen over auto-login
+  (option B) to keep one code path and to not spend a login from the 10 per
+  15 min budget while testing
+- **Second trap, purely a browser one: Chrome's password manager silently
+  overwrote the typed password with a saved one during register**, so the
+  account was created with a different password and the correct one was then
+  rejected with a 401. Cost us a confusing round of manual testing. Use an
+  incognito window for manual auth testing, and when a 401 looks wrong, read
+  the request Payload tab before suspecting the code
+- Also worth knowing: a failed fetch does appear in the Network tab, but only
+  while the record button is active — a paused or cleared log makes a real
+  401 look like the request never happened
+- Gate (manual, in an incognito window): existing session on load shows
+  "Signed in as devuser1" with no auth flash; deleting the cookie shows the
+  form; register with a fresh account flips to the login screen with the
+  prefilled username and clears the password; a rejected password shows the
+  backend's own "Invalid username or password"; the same password then logs
+  in; bad input is caught client-side with two inline errors and **no
+  request in the Network tab**. oxlint clean, `vite build` 18 modules
+- Backend untouched this step — 7 suites / 41 tests still stand from step 35

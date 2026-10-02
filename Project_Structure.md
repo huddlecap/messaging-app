@@ -79,6 +79,9 @@ messaging-app/
 | `frontend/vite.config.js` | Dev server config — proxies `/api` and `/ws` to `localhost:3000` |
 | `frontend/package.json` | Scripts: `dev` (Vite), `build`, `lint` (oxlint), `preview` |
 | `frontend/src/api.js` | HTTP client — `fetch` wrapper, `ApiError`, single 401 hook (`setUnauthorizedHandler`), auth/users/history endpoints |
+| `frontend/src/App.jsx` | App shell — session check on load, 401 hook wiring, switches between auth screen and signed-in view |
+| `frontend/src/components/AuthScreen.jsx` | Login/register form — client-side validation mirroring the backend rules, server errors shown verbatim |
+| `frontend/src/index.css` | Global stylesheet — colour variables (light/dark) plus the minimal form/layout rules |
 | `backend/.env` | Production/dev environment variables |
 | `backend/.env.test` | Test environment variables (test database) |
 | `backend/.gitignore` | Git ignore rules |

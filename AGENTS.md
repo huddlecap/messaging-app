@@ -72,6 +72,13 @@ Frontend (run from `frontend/`):
   request goes through its `fetch` wrapper, which throws `ApiError(status,
   message)` and routes **all** 401s through `setUnauthorizedHandler` (set once
   by the app shell) so components never hand-roll 401 handling.
+- `frontend/src/components/AuthScreen.jsx` mirrors `backend/src/validation.js`
+  client-side. The password cap is **72 bytes**, not 72 characters (bcrypt's
+  limit) — use `new TextEncoder().encode(pw).length`, a `.length` check would
+  wrongly accept multi-byte passwords.
+- `POST /api/auth/register` returns `201` and **does not create a session**
+  (only `/login` sets `session_id`, `authRoutes.js`). Never treat a successful
+  register as a signed-in state.
 
 ## Invariants
 - **`src/db/schema.sql` must mirror the live DB** (verified against
