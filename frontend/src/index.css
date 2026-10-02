@@ -224,6 +224,20 @@ button.link {
   border: 1px solid var(--border);
 }
 
+.composer {
+  margin-top: 16px;
+  display: flex;
+  gap: 8px;
+}
+
+.composer input {
+  flex: 1;
+}
+
+.composer button {
+  margin-top: 0;
+}
+
 .notice {
   margin: 0 0 12px;
   color: var(--accent);

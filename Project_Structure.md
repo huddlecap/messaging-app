@@ -83,6 +83,7 @@ messaging-app/
 | `frontend/src/components/AuthScreen.jsx` | Login/register form — client-side validation mirroring the backend rules, server errors shown verbatim |
 | `frontend/src/components/UserPicker.jsx` | Fetches and lists users, handles selection |
 | `frontend/src/components/Conversation.jsx` | Displays message history and live messages for the selected user |
+| `frontend/src/components/Composer.jsx` | Message input with send button, generates client_message_id per send |
 | `frontend/src/index.css` | Global stylesheet — colour variables (light/dark) plus the minimal form/layout rules |
 | `backend/.env` | Production/dev environment variables |
 | `backend/.env.test` | Test environment variables (test database) |

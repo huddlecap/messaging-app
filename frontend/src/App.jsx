@@ -4,6 +4,7 @@ import AuthScreen from './components/AuthScreen.jsx'
 import { createSocketClient } from './wsClient.js'
 import UserPicker from './components/UserPicker.jsx'
 import Conversation from './components/Conversation.jsx'
+import Composer from './components/Composer.jsx'
 
 const STATUS_TEXT = {
   checking: 'Checking session…',
@@ -97,6 +98,12 @@ function App() {
     }
   }, [selectedUser])
 
+  function sendMessage(payload) {
+    const client = clientRef.current
+    if (!client) return false
+    return client.send(payload)
+  }
+
   if (user === undefined) {
     return <main className="checking">Checking session…</main>
   }
@@ -131,6 +138,13 @@ function App() {
           messages={messages}
           currentUser={user}
           otherUser={selectedUser}
+        />
+      )}
+      {selectedUser && (
+        <Composer
+          selectedUser={selectedUser}
+          socketState={socketState}
+          onSend={sendMessage}
         />
       )}
     </main>

@@ -85,6 +85,10 @@ Frontend (run from `frontend/`):
 - `frontend/src/components/Conversation.jsx` is presentational — App.jsx
   owns the messages state and dedups by message id in a ref Set. The
   backend returns history newest-first; the UI reverses it to oldest-first.
+- `frontend/src/components/Composer.jsx` sends via the socket client and
+  generates a `client_message_id` with `crypto.randomUUID()` per send. The
+  Send button is disabled unless a user is selected, the socket is open,
+  and the text is non-empty.
 
 ## Invariants
 - **`src/db/schema.sql` must mirror the live DB** (verified against

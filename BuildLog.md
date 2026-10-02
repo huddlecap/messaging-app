@@ -508,3 +508,25 @@
   the message list or "No messages yet."; switching users fires
   GET /api/messages/<id> with status 200. oxlint clean, vite build passes
 - Backend untouched this step — 7 suites / 41 tests still stand from step 35
+
+## 41. Message composer
+
+- components/Composer.jsx is a controlled form: text input plus a Send
+  button. On submit it builds { receiver_id, content, client_message_id }
+  and hands the payload to App.jsx via onSend, which calls
+  clientRef.current.send(payload). The input clears only when send()
+  returns true, so a failed send keeps the text for a retry
+- client_message_id is crypto.randomUUID() per send — a fresh id every
+  time, which is what lets the backend deduplicate retries (unique
+  violation 23505 returns the original row instead of inserting a copy)
+- The button is disabled unless a user is selected, the socket reports
+  status 'open', and the trimmed text is non-empty. That covers the
+  "disabled while socket is down" requirement without any extra state:
+  socketState already tracks connecting/reconnecting/closed
+- The composer is only rendered when selectedUser is set, and the input
+  is disabled with a "Select a user first" placeholder when it isn't
+- Gate: composer appears below the conversation with a disabled Send
+  button; typing enables it; sending appends the message to the list,
+  clears the input, and disables the button again. oxlint clean,
+  vite build passes
+- Backend untouched this step — 7 suites / 41 tests still stand from step 35

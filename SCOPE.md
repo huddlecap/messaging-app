@@ -51,7 +51,7 @@ for a real user in a browser.
       session check, no reconnect on intentional close)
 - [x] User picker
 - [x] Conversation view (first 50 messages, live append, no duplicates)
-- [ ] Message composer (client_message_id per send, disabled while socket is
+- [x] Message composer (client_message_id per send, disabled while socket is
       down)
 - [ ] Logout
 - [ ] Manual end-to-end verification; backend tests green
