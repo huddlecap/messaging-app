@@ -332,3 +332,24 @@
 - users.test.js covers the 401 without a cookie, the 200 shape (exact
   {id, username} keys), and self not appearing in the list
 - Gate: 7 suites / 40 tests passing, exit 0
+
+## 35. Replaced WebSocket closes with 4001 "replaced"
+
+- Swapped existingSocket.terminate() for close(4001, "replaced") so the
+  browser can tell "another tab took over" apart from "the network dropped" —
+  both used to arrive as an unclean 1006, and the frontend has to react
+  differently to each (show the replaced screen vs. reconnect)
+- 4001 is inside the 4000-4999 application range reserved for app-specific
+  codes; 1001/1000 (going away / normal) are taken by the protocol itself and
+  1006 can never be sent deliberately
+- close() is a handshake, so a 2s fallback terminate() covers a peer that never
+  echoes the close frame and would otherwise hang in CLOSING forever; timer is
+  unref'd and cleared on close so it can't keep the process alive
+- Hit and fixed: switching from terminate() to close() opened a window where a
+  socket sits in CLOSING, and the 30s heartbeat would call ping() on it — ws
+  throws on a non-OPEN socket and an exception inside setInterval is uncaught,
+  which would kill the server. The heartbeat now skips non-OPEN sockets
+- waitForClose in websocket.test.js now resolves { code, reason } instead of
+  just the code; the existing reconnect test ignores the return value so it
+  passed unchanged, and the new test asserts 4001 / "replaced"
+- Gate: 7 suites / 41 tests passing, exit 0

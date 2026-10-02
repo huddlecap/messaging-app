@@ -84,3 +84,22 @@ Limiters are skipped when NODE_ENV=test so auth/message/WS tests aren't
 blocked by counters. A separate TEST_RATE_LIMIT flag re-enables the real
 limiter for one dedicated test file, so the actual 429 behavior still gets
 verified without every other test tripping it.
+
+## Close code 4001 for a replaced socket
+
+Terminating the old socket gave the browser nothing to work with: an unclean
+TCP drop arrives as 1006, which is indistinguishable from the backend going
+away or the network dropping. The frontend needs those to mean different
+things — one should reconnect, the other must not. So the server now sends
+`close(4001, "replaced")` instead, from the application range 4000-4999, which
+is what the browser hands to the client's onclose. The client must treat 4001
+as terminal for that tab and show the "account open in another tab" screen
+rather than reconnecting, because reconnecting would immediately replace the
+*other* tab and ping-pong forever.
+
+`close()` is a handshake, so a 2s fallback `terminate()` covers a peer that
+never echoes the close frame and would otherwise sit in CLOSING forever. The
+timer is `unref`'d and cleared on close so it can't hold the process open. A
+consequence of closing gracefully instead of terminating: the heartbeat now
+skips sockets that aren't OPEN, because `ping()` throws on a CLOSING socket
+and an exception inside `setInterval` would take the process down.

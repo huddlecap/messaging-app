@@ -40,7 +40,7 @@ to replace Postman for manual testing and prove the app works end-to-end
 for a real user in a browser.
 
 - [x] Backend: GET /api/users (all users except self, requireAuth) + tests
-- [ ] Backend: replaced WebSocket closed with code 4001 and reason "replaced"
+- [x] Backend: replaced WebSocket closed with code 4001 and reason "replaced"
       + test
 - [ ] Frontend scaffold (Vite + React) with dev proxy for /api and /ws;
       session cookie and WebSocket verified through the proxy

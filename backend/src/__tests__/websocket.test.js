@@ -79,9 +79,9 @@ function waitForMessage(ws, timeoutMs = 3000) {
 function waitForClose(ws, timeoutMs = 3000) {
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => reject(new Error("timeout waiting for close")), timeoutMs);
-    ws.once("close", (code) => {
+    ws.once("close", (code, reason) => {
       clearTimeout(timer);
-      resolve(code);
+      resolve({ code, reason: reason.toString() });
     });
   });
 }
@@ -206,6 +206,17 @@ test("reconnect: new socket keeps receiving after old socket is replaced", async
   wsB.send(JSON.stringify({ receiver_id: userA, content: "after reconnect", client_message_id: cmid }));
   const received = await waitForMessage(wsA2);
   expect(received.content).toBe("after reconnect");
+
+  wsA = wsA2;
+});
+
+test("replaced socket closes with code 4001 and reason 'replaced'", async () => {
+  const closed = waitForClose(wsA);
+  wsA2 = await connectWS(cookieA);
+  const { code, reason } = await closed;
+
+  expect(code).toBe(4001);
+  expect(reason).toBe("replaced");
 
   wsA = wsA2;
 });

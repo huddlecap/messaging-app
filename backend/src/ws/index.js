@@ -1,9 +1,18 @@
-const { WebSocketServer } = require("ws");
+const { WebSocketServer, WebSocket } = require("ws");
 const { parseCookie } = require("cookie");
 const pool = require("../db/db");
 const { validateReadReceipt, validateMessagePayload } = require("../validation");
 
 const userSockets = new Map();
+
+// Application close code: 4000-4999 is the private range. Sent when the same
+// user connects again, so the browser knows this was a replacement and not a
+// dropped network connection.
+const REPLACED_CLOSE_CODE = 4001;
+const REPLACED_CLOSE_REASON = "replaced";
+// A close() is a handshake: the peer must echo the close frame. If it never
+// does, the socket would sit in CLOSING forever, so terminate after this.
+const REPLACED_CLOSE_FALLBACK_MS = 2000;
 
 function setupWebSocket(server) {
   const wss = new WebSocketServer({ noServer: true });
@@ -12,6 +21,9 @@ function setupWebSocket(server) {
     wss.clients.forEach((ws) => {
       if (ws.isAlive === false) {
         return ws.terminate();
+      }
+      if (ws.readyState !== WebSocket.OPEN) {
+        return;
       }
       ws.isAlive = false;
       ws.ping();
@@ -47,7 +59,15 @@ function setupWebSocket(server) {
       wss.handleUpgrade(req, socket, head, (ws) => {
         const existingSocket = userSockets.get(userId);
         if (existingSocket) {
-          existingSocket.terminate();
+          existingSocket.close(REPLACED_CLOSE_CODE, REPLACED_CLOSE_REASON);
+
+          const fallbackTimer = setTimeout(() => {
+            if (existingSocket.readyState !== WebSocket.CLOSED) {
+              existingSocket.terminate();
+            }
+          }, REPLACED_CLOSE_FALLBACK_MS);
+          fallbackTimer.unref();
+          existingSocket.once("close", () => clearTimeout(fallbackTimer));
         }
 
         userSockets.set(userId, ws);

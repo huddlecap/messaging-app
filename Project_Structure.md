@@ -73,7 +73,7 @@ messaging-app/
 ## Notes
 - `AGENTS.md` — agent instructions (commands, test rules, invariants)
 - `node_modules/` is excluded — install with `npm install`
-- Tests: `npm test` from `backend/` — 7 suites, 40 tests, sequential (`--runInBand`) against the test DB (`.env.test`)
+- Tests: `npm test` from `backend/` — 7 suites, 41 tests, sequential (`--runInBand`) against the test DB (`.env.test`)
 - Test script uses `cross-env` + `NODE_OPTIONS=--experimental-vm-modules` (portable env vars; Jest require(esm) for the `cookie` package)
 - `Progress.md` tracks project progress
 - `BuildLog.md` contains build logs

@@ -6,7 +6,7 @@ CommonJS (`"type": "commonjs"`). No frontend. No lint/typecheck —
 **`npm test` is the only verification step.**
 
 ## Commands (always run from `backend/`)
-- `npm test` — full suite: 7 files, 40 tests, ~30 s, must exit 0
+- `npm test` — full suite: 7 files, 41 tests, ~30 s, must exit 0
 - Focused run: `npm test -- src/__tests__/auth.test.js`
 - `npm run dev` — nodemon (local devDependency; a bare `nodemon` in your
   shell is whatever global you have installed)
@@ -41,7 +41,8 @@ CommonJS (`"type": "commonjs"`). No frontend. No lint/typecheck —
 - `src/validation.js` = single source of input rules for both HTTP routes
   and WS messages.
 - `src/ws/index.js`: session-cookie auth on upgrade, **one socket per user**
-  (new connection terminates the old), 30 s heartbeat, read receipts
+  (new connection closes the old with code 4001 `"replaced"` + 2s fallback
+  terminate), 30 s heartbeat (skips non-OPEN sockets), read receipts
   (`read_at`), `client_message_id` dedup (unique violation 23505 → return
   the original row).
 - `src/middleware/rateLimiters.js`: `registerLimiter` 5/hour,

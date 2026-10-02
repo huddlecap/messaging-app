@@ -129,7 +129,7 @@ Source: `src/ws/index.js`
 
 1. `setupWebSocket(server)` returns `{ wss, heartbeatInterval }`; creates a `WebSocketServer` with `{ noServer: true }` and a 30s heartbeat interval (ping every client, terminate if `isAlive === false`).
 2. On `server.on("upgrade")`: parses cookies (`parseCookie`), requires a valid, unexpired `session_id` (destroys the socket otherwise).
-3. **Single socket per user:** if the user already has a socket, the old one is `terminate()`d (forces reconnect handling onto the newest socket).
+3. **Single socket per user:** if the user already has a socket, the old one is closed with code `4001` and reason `"replaced"` (forces reconnect handling onto the newest socket), with a 2s fallback `terminate()` if the peer never completes the close handshake.
 4. **Incoming messages** (`ws.on("message")`):
    - Invalid JSON → `{ type: "error", message: "Invalid JSON" }`.
    - `{ type: "read_receipt", message_id }` → validated (`message_id` positive int), `UPDATE messages SET read_at = NOW() WHERE id = $1 AND receiver_id = $2 AND read_at IS NULL`; if a row was updated, the sender's socket receives `{ type: "read_receipt", message_id, read_at }`.
@@ -158,14 +158,14 @@ Source: `src/ws/index.js`
 
 **Command:** `npm test` (from `backend/`) — Jest 30, `NODE_ENV=test`, `--runInBand`, test database (`.env.test`).
 
-**7 suites, 40 tests, all passing (verified at the GET /api/users step, exit 0, no open-handle warnings):**
+**7 suites, 41 tests, all passing (verified at the 4001 close-code step, exit 0, no open-handle warnings):**
 
 | Suite | Tests | Covers |
 |-------|-------|--------|
 | `auth.test.js` | 12 | register (201/409/400), login (200+cookie/401), `GET /me` (200/401 variants), logout (200, session row deleted) |
 | `messages.test.js` | 10 | history auth/validation/404, DESC order, limit + nextCursor, `before` pagination without overlap, empty conversation |
 | `users.test.js` | 3 | `/api/users`: 401 without cookie, 200 with exact `{id, username}` shape, caller not listed |
-| `websocket.test.js` | 10 | upgrade rejection (no/invalid cookie), connect, send/echo/push/DB save, self-send & receiver & payload errors, `client_message_id` dedup, read receipt, reconnect replaces old socket (real HTTP+WS server on an ephemeral port) |
+| `websocket.test.js` | 11 | upgrade rejection (no/invalid cookie), connect, send/echo/push/DB save, self-send & receiver & payload errors, `client_message_id` dedup, read receipt, reconnect replaces old socket, replaced socket closes with 4001 `"replaced"` (real HTTP+WS server on an ephemeral port) |
 | `rateLimit.test.js` | 2 | real limiter active (`TEST_RATE_LIMIT=1`): 6th register → 429, 11th failed login → 429 |
 | `sessionCleanup.test.js` | 1 | expired session deleted, valid session untouched (expired timestamp inserted as `NOW() - INTERVAL '2 hours'` in SQL to match the cleanup query's time reference) |
 | `errorHandling.test.js` | 2 | unknown route → 404, malformed JSON → 400 `"Invalid JSON"` |

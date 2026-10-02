@@ -9,7 +9,7 @@ Backend-only messaging API: user registration/login with session cookies, direct
 - **Database:** PostgreSQL (Neon) via `pg`
 - **Real-time:** `ws` WebSocket server
 - **Auth:** session cookie (`httpOnly`, `sameSite=strict`), passwords hashed with `bcrypt`
-- **Tests:** Jest + Supertest (40 tests, 7 suites)
+- **Tests:** Jest + Supertest (41 tests, 7 suites)
 - **Dev:** nodemon
 
 ## Setup
@@ -40,12 +40,12 @@ npm run dev
 npm test
 ```
 
-Runs all 7 suites (40 tests) against the test database and must exit 0. Testing rules and quirks (shared DB, `--runInBand`, rate-limiter opt-in, etc.) are documented in [AGENTS.md](AGENTS.md).
+Runs all 7 suites (41 tests) against the test database and must exit 0. Testing rules and quirks (shared DB, `--runInBand`, rate-limiter opt-in, etc.) are documented in [AGENTS.md](AGENTS.md).
 
 ## Architecture
 
 - `src/app.js` — Express app (middleware, routes, error handling); `src/index.js` — startup, WebSocket wiring, graceful shutdown
-- `src/ws/index.js` — session-cookie auth on upgrade, one socket per user, heartbeats, read receipts, `client_message_id` dedup
+- `src/ws/index.js` — session-cookie auth on upgrade, one socket per user (old one closed with 4001 `"replaced"`), heartbeats, read receipts, `client_message_id` dedup
 - `src/validation.js` — single source of input rules for HTTP + WS
 - `src/db/` — pool, schema (`schema.sql` mirrors the live DB), hourly session cleanup
 
