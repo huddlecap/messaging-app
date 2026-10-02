@@ -1,11 +1,13 @@
 # AGENTS.md
 
 ## What this is
-Backend-only messaging API: Node.js + Express 5 + ws + PostgreSQL (Neon),
-CommonJS (`"type": "commonjs"`). No frontend. No lint/typecheck —
-**`npm test` is the only verification step.**
+Messaging app: Express 5 + ws + PostgreSQL (Neon) backend (CommonJS,
+`"type": "commonjs"`) plus a React + Vite frontend in `frontend/`. Backend has
+no lint/typecheck — **`npm test` is the only backend verification step**
+(frontend tests are Phase 3).
 
-## Commands (always run from `backend/`)
+## Commands
+Backend (run from `backend/`):
 - `npm test` — full suite: 7 files, 41 tests, ~30 s, must exit 0
 - Focused run: `npm test -- src/__tests__/auth.test.js`
 - `npm run dev` — nodemon (local devDependency; a bare `nodemon` in your
@@ -13,6 +15,23 @@ CommonJS (`"type": "commonjs"`). No frontend. No lint/typecheck —
 - `node --check <file>` — syntax check
 - **CWD matters**: dotenv resolves `.env`/`.env.test` by relative path —
   commands run outside `backend/` will fail to load env
+
+Frontend (run from `frontend/`):
+- `npm run dev` — Vite dev server at `http://localhost:5173`, proxies `/api`
+  and `/ws` to `:3000`. Always use `http://localhost:5173`, never a LAN IP —
+  `crypto.randomUUID` needs a secure context and a LAN IP is not one
+- `npm run build` / `npm run lint` — Vite build / oxlint (scaffolded, not a
+  project gate yet)
+- **Run Vite from WSL**, not Git Bash/Windows Node: `npm install` ran under
+  WSL, so `node_modules` holds only `@rolldown/binding-linux-x64-gnu` and
+  Windows Node cannot load it. The backend has no native bindings and runs
+  from either shell.
+- **`server.watch.usePolling` in `vite.config.js` is not optional** — `/mnt/c`
+  is a 9p (drvfs) mount that delivers no inotify events. Symptom if it's ever
+  removed: edits are ignored *and a hard reload still shows stale content*,
+  because Vite serves its in-memory copy rather than re-reading the disk.
+  Diagnose by comparing the file on disk with
+  `curl -s http://localhost:5173/src/index.css`.
 
 ## Testing rules (deviations from Jest defaults — break these and tests fail or pollute the shared DB)
 - `NODE_ENV=test` is set by the `test` script (cross-env) → `src/db/db.js`

@@ -42,7 +42,7 @@ for a real user in a browser.
 - [x] Backend: GET /api/users (all users except self, requireAuth) + tests
 - [x] Backend: replaced WebSocket closed with code 4001 and reason "replaced"
       + test
-- [ ] Frontend scaffold (Vite + React) with dev proxy for /api and /ws;
+- [x] Frontend scaffold (Vite + React) with dev proxy for /api and /ws;
       session cookie and WebSocket verified through the proxy
 - [ ] API client (fetch wrapper, error handling, central 401 handling)
 - [ ] Auth screen and app shell (register/login, client validation, errors

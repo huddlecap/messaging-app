@@ -40,6 +40,8 @@
 - `backend/.env.test` → test branch (`ep-polished-leaf-…`), selected when `NODE_ENV=test`
 - SSL is set to `rejectUnauthorized: false`.
 
+**Frontend (Phase 2):** React 19 + Vite 8 in `frontend/` — dev server on `:5173` proxying `/api` and `/ws` to the backend on `:3000` (same-origin, so no CORS and the session cookie works unchanged). No frontend tests yet (Phase 3).
+
 ---
 
 ## 2. Database Schema

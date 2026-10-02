@@ -1,16 +1,14 @@
-# Messaging App Backend
+# Messaging App
 
-Backend-only messaging API: user registration/login with session cookies, direct message history over REST, and real-time 1:1 messaging over WebSocket — with read receipts and idempotent message delivery.
+Messaging API (Express + WebSocket) with a minimal React frontend for 1:1 real-time chat: user registration/login with session cookies, message history over REST, and live delivery over WebSocket with idempotent sends.
 
 ## Tech Stack
 
-- **Runtime:** Node.js (CommonJS)
-- **Framework:** Express 5
-- **Database:** PostgreSQL (Neon) via `pg`
-- **Real-time:** `ws` WebSocket server
+- **Backend:** Node.js (CommonJS), Express 5, `ws` WebSocket server, PostgreSQL (Neon) via `pg`
+- **Frontend:** React 19 + Vite dev server (`frontend/`), plain CSS
 - **Auth:** session cookie (`httpOnly`, `sameSite=strict`), passwords hashed with `bcrypt`
-- **Tests:** Jest + Supertest (41 tests, 7 suites)
-- **Dev:** nodemon
+- **Tests:** Jest + Supertest (41 tests, 7 suites) — backend only
+- **Dev:** nodemon (backend), Vite (frontend)
 
 ## Setup
 
@@ -33,6 +31,18 @@ Run the dev server:
 ```bash
 npm run dev
 ```
+
+### Frontend
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Open **`http://localhost:5173`** (use localhost, never a LAN IP — `crypto.randomUUID` requires a secure context). The Vite dev server proxies `/api` and `/ws` to the backend on `:3000`, so no CORS is involved and the session cookie works same-origin.
+
+Both servers must be running (backend on `:3000`, frontend on `:5173`).
 
 ## Testing
 

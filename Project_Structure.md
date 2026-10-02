@@ -8,8 +8,9 @@ messaging-app/
 ├── BuildLog.md
 ├── Progress.md
 ├── Project_Structure.md
+├── README.md
 ├── SCOPE.md
-└── backend/
+├── backend/
     ├── .env                    # production/dev environment variables
     ├── .env.test               # test environment variables (test DB)
     ├── .gitignore
@@ -45,6 +46,15 @@ messaging-app/
         │   └── userRoutes.js      # user list (GET /, all except self)
         └── ws/
             └── index.js           # WebSocket auth, messaging, read receipts, heartbeat
+└── frontend/                  # React + Vite app (Phase 2, minimal UI)
+    ├── .gitignore              # ignores node_modules, dist, *.log
+    ├── .oxlintrc.json          # oxlint config (from Vite scaffold)
+    ├── index.html              # Vite entry point
+    ├── node_modules/           # dependencies (excluded from sharing)
+    ├── package.json            # scripts: dev, build, lint, preview
+    ├── public/
+    ├── src/                    # App.jsx, main.jsx, styles (placeholder screen)
+    └── vite.config.js          # dev proxy: /api and /ws → localhost:3000
 ```
 
 ## Key Source Files
@@ -66,6 +76,8 @@ messaging-app/
 | `backend/src/__tests__/` | 7 Jest test suites (auth, messages, websocket, rateLimit, sessionCleanup, errorHandling, users) |
 | `backend/jest.config.js` | `testEnvironment: node`, `testTimeout: 10000` |
 | `backend/package.json` | Scripts: `test` (Jest, NODE_ENV=test, runInBand), `dev` (nodemon) |
+| `frontend/vite.config.js` | Dev server config — proxies `/api` and `/ws` to `localhost:3000` |
+| `frontend/package.json` | Scripts: `dev` (Vite), `build`, `lint` (oxlint), `preview` |
 | `backend/.env` | Production/dev environment variables |
 | `backend/.env.test` | Test environment variables (test database) |
 | `backend/.gitignore` | Git ignore rules |

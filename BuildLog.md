@@ -353,3 +353,37 @@
   just the code; the existing reconnect test ignores the return value so it
   passed unchanged, and the new test asserts 4001 / "replaced"
 - Gate: 7 suites / 41 tests passing, exit 0
+
+## 36. Frontend scaffold — Vite + React behind a dev proxy
+
+- Ran create-vite (react template) into frontend/, no interactive prompts;
+  24 packages installed, 0 vulnerabilities. Scaffolding includes its own
+  .gitignore covering node_modules, dist and *.log, so neither can be staged
+- vite.config.js proxies /api to http://localhost:3000 and /ws to
+  ws://localhost:3000 (ws: true), which keeps the browser same-origin on
+  :5173 — the session cookie needs no CORS work and Phase 1's verified HTTP
+  surface stays untouched
+- Frontend uses relative URLs only (/api/..., ws://${location.host}/ws): no
+  env files, nothing to configure per machine. Served at
+  http://localhost:5173 — never a LAN IP, because crypto.randomUUID (used for
+  client_message_id) is only available in a secure context and localhost
+  qualifies while a LAN IP does not
+- Scaffold ships oxlint; frontend lint exists but is not a project gate (the
+  backend still has none — gate remains npm test in backend/)
+- Hot reload was dead on arrival and it was worth chasing down: /mnt/c is a 9p
+  (drvfs) mount, which delivers no inotify events, so Vite never learned that
+  files had changed. Proved it rather than guessing — appended
+  `body { background: red !important; }` to index.css and found the rule
+  present on disk (tail) yet absent from what the dev server handed the browser
+  (curl http://localhost:5173/src/index.css | grep -c "background: red" → 0).
+  A hard reload didn't help either, because the staleness was server-side:
+  Vite answered from its in-memory cache instead of re-reading the disk. Fixed
+  with server.watch.usePolling; after restarting, the same edit repainted the
+  page live with no F5. Would have silently broken every later UI step
+- Gate: proxy verified end-to-end from the browser at :5173 — logged-out
+  /api/auth/me → 401, register → 201, login → 200 with session_id cookie,
+  WebSocket ws://localhost.host/ws → onopen; hot reload confirmed live
+- Vite must run in WSL, not Git Bash: npm install ran under WSL so node_modules
+  holds only the Linux native binding (@rolldown/binding-linux-x64-gnu), and
+  Windows Node would fail to load it. The backend has no native bindings and
+  runs fine from either shell
