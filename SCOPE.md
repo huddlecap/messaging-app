@@ -38,6 +38,24 @@ tests, no frontend needed yet.
 A minimal UI wired to the existing backend. No styling polish — just enough
 to replace Postman for manual testing and prove the app works end-to-end
 for a real user in a browser.
+
+- [ ] Backend: GET /api/users (all users except self, requireAuth) + tests
+- [ ] Backend: replaced WebSocket closed with code 4001 and reason "replaced"
+      + test
+- [ ] Frontend scaffold (Vite + React) with dev proxy for /api and /ws;
+      session cookie and WebSocket verified through the proxy
+- [ ] API client (fetch wrapper, error handling, central 401 handling)
+- [ ] Auth screen and app shell (register/login, client validation, errors
+      shown, session check on load)
+- [ ] WebSocket client (reconnect with backoff, replaced-tab handling,
+      session check, no reconnect on intentional close)
+- [ ] User picker
+- [ ] Conversation view (first 50 messages, live append, no duplicates)
+- [ ] Message composer (client_message_id per send, disabled while socket is
+      down)
+- [ ] Logout
+- [ ] Manual end-to-end verification; backend tests green
+
 Done when: register, login, send/receive live, view history, and logout all
 work through the UI.
 

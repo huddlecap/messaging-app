@@ -296,3 +296,21 @@
 ## across independent runs, no leftover test data, no open handles.
 
 ## Phase 1 backend MVP done.
+
+## 33. Phase 2 checklist added (docs only)
+
+- Broke Phase 2 into 11 one-commit steps, each mapped to one checklist item in
+  SCOPE.md: backend user list, WebSocket 4001 replaced-socket code, Vite +
+  React scaffold behind a dev proxy, API client, auth shell, WebSocket client,
+  user picker, conversation view, composer, logout, manual end-to-end
+- Two backend gaps surfaced while planning the frontend and became their own
+  steps rather than silent workarounds: there was no way for the UI to pick a
+  receiver (no GET /api/users), and a replaced socket died as an unclean 1006
+  (terminate() with no code), which the browser cannot tell apart from a
+  network drop — hence 4001 "replaced" so the client knows not to reconnect
+- Chose a Vite dev proxy for /api and /ws over adding CORS to the backend, so
+  the session cookie works same-origin and Phase 1's verified HTTP surface
+  stays untouched
+- Excluded by design (already non-goals or later phases): read receipt UI,
+  presence/online, typing indicators, multi-tab support, styling polish,
+  frontend tests (Phase 3), pagination UI (first 50 messages only)
