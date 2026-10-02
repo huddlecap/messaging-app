@@ -3,6 +3,7 @@ const morgan = require("morgan");
 const app = express();
 const pool = require("./db/db");
 const authRoutes = require("./routes/authRoutes");
+const userRoutes = require("./routes/userRoutes");
 const cookieParser = require("cookie-parser");
 const requireAuth = require("./middleware/authMiddleware");
 const messageRoutes = require("./routes/messageRoutes");
@@ -12,6 +13,7 @@ app.use(cookieParser());
 app.use(express.json());
 app.use("/api/auth", authRoutes);
 app.use("/api/messages", requireAuth, messageRoutes);
+app.use("/api/users", requireAuth, userRoutes);
 
 app.get("/", (req, res) => {
   res.send("Server is running");

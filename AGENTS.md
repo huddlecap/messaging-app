@@ -6,7 +6,7 @@ CommonJS (`"type": "commonjs"`). No frontend. No lint/typecheck —
 **`npm test` is the only verification step.**
 
 ## Commands (always run from `backend/`)
-- `npm test` — full suite: 6 files, 37 tests, ~30 s, must exit 0
+- `npm test` — full suite: 7 files, 40 tests, ~30 s, must exit 0
 - Focused run: `npm test -- src/__tests__/auth.test.js`
 - `npm run dev` — nodemon (local devDependency; a bare `nodemon` in your
   shell is whatever global you have installed)

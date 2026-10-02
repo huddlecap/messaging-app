@@ -314,3 +314,21 @@
 - Excluded by design (already non-goals or later phases): read receipt UI,
   presence/online, typing indicators, multi-tab support, styling polish,
   frontend tests (Phase 3), pagination UI (first 50 messages only)
+
+## 34. GET /api/users — 3 tests
+
+- Added src/routes/userRoutes.js so the frontend has something to populate a
+  user picker with; without it the UI could only address users by typing raw
+  ids, which is not a real MVP
+- Query is SELECT id, username FROM users WHERE id != $1 ORDER BY username —
+  self is excluded server-side so the client never has to filter it out
+- Mounted as app.use("/api/users", requireAuth, userRoutes) next to
+  /api/messages, so it inherits the same auth gate rather than adding its own
+  check; ordering by username makes the picker stable instead of
+  insertion-ordered
+- Known MVP limitation, recorded for later: this lists every username in the
+  database to any logged-in user. Fine for manual testing, wrong for a real
+  deployment — it needs either a search/pagination endpoint or contacts
+- users.test.js covers the 401 without a cookie, the 200 shape (exact
+  {id, username} keys), and self not appearing in the list
+- Gate: 7 suites / 40 tests passing, exit 0

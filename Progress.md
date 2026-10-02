@@ -99,6 +99,12 @@ All routes are mounted in `src/app.js` (the Express app; `src/index.js` only sta
 |--------|------|-------------|
 | `GET` | `/api/messages/:otherUserId` | Message history between current user and `:otherUserId`, ordered `id DESC`, optional `?limit=` (1–100, default 50) and `?before=<id>` cursor. `400` invalid params, `404` unknown user, `200` with `{ messages, nextCursor }`. |
 
+### Routes in `userRoutes.js` (mounted at `/api/users`, protected by `requireAuth`):
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/api/users` | All users except the caller: `SELECT id, username FROM users WHERE id != $1 ORDER BY username`. Returns `{ users: [{ id, username }] }`, `500` on error. **MVP limitation:** every username is visible to any logged-in user. |
+
 ### Routes in `app.js` (not in a router):
 
 | Method | Path | Description |
@@ -152,12 +158,13 @@ Source: `src/ws/index.js`
 
 **Command:** `npm test` (from `backend/`) — Jest 30, `NODE_ENV=test`, `--runInBand`, test database (`.env.test`).
 
-**6 suites, 37 tests, all passing (verified twice back-to-back, exit 0, no open-handle warnings):**
+**7 suites, 40 tests, all passing (verified at the GET /api/users step, exit 0, no open-handle warnings):**
 
 | Suite | Tests | Covers |
 |-------|-------|--------|
 | `auth.test.js` | 12 | register (201/409/400), login (200+cookie/401), `GET /me` (200/401 variants), logout (200, session row deleted) |
 | `messages.test.js` | 10 | history auth/validation/404, DESC order, limit + nextCursor, `before` pagination without overlap, empty conversation |
+| `users.test.js` | 3 | `/api/users`: 401 without cookie, 200 with exact `{id, username}` shape, caller not listed |
 | `websocket.test.js` | 10 | upgrade rejection (no/invalid cookie), connect, send/echo/push/DB save, self-send & receiver & payload errors, `client_message_id` dedup, read receipt, reconnect replaces old socket (real HTTP+WS server on an ephemeral port) |
 | `rateLimit.test.js` | 2 | real limiter active (`TEST_RATE_LIMIT=1`): 6th register → 429, 11th failed login → 429 |
 | `sessionCleanup.test.js` | 1 | expired session deleted, valid session untouched (expired timestamp inserted as `NOW() - INTERVAL '2 hours'` in SQL to match the cleanup query's time reference) |
@@ -174,7 +181,7 @@ Source: `src/ws/index.js`
 
 **API / features:**
 - No offline message delivery or delivery-on-reconnect queue.
-- No `GET` endpoints for listing users/contacts or presence/online status.
+- No endpoints for presence/online status. (`GET /api/users` now lists users, but returns every username to any logged-in user — fine for MVP, needs search/pagination or contacts before deployment.)
 - No user profile update, password reset, or email verification.
 - No message deletion or editing.
 - No group chats / channels / `conversation_id` grouping.

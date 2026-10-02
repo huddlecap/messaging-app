@@ -30,6 +30,7 @@ messaging-app/
         │   ├── messages.test.js
         │   ├── rateLimit.test.js
         │   ├── sessionCleanup.test.js
+        │   ├── users.test.js
         │   └── websocket.test.js
         ├── db/
         │   ├── db.js           # pg Pool; loads .env.test when NODE_ENV=test, else .env
@@ -40,7 +41,8 @@ messaging-app/
         │   └── rateLimiters.js    # login/register limiters
         ├── routes/
         │   ├── authRoutes.js      # register / login / logout
-        │   └── messageRoutes.js   # message history (GET /:otherUserId)
+        │   ├── messageRoutes.js   # message history (GET /:otherUserId)
+        │   └── userRoutes.js      # user list (GET /, all except self)
         └── ws/
             └── index.js           # WebSocket auth, messaging, read receipts, heartbeat
 ```
@@ -59,8 +61,9 @@ messaging-app/
 | `backend/src/middleware/rateLimiters.js` | `loginLimiter` / `registerLimiter` (bypassed when `NODE_ENV=test` unless `TEST_RATE_LIMIT=1`) |
 | `backend/src/routes/authRoutes.js` | Register / login / logout routes |
 | `backend/src/routes/messageRoutes.js` | Message history route with cursor pagination |
+| `backend/src/routes/userRoutes.js` | User list route (caller's own account excluded) |
 | `backend/src/ws/index.js` | WebSocket handler — cookie auth, send/receive, read receipts, heartbeat |
-| `backend/src/__tests__/` | 6 Jest test suites (auth, messages, websocket, rateLimit, sessionCleanup, errorHandling) |
+| `backend/src/__tests__/` | 7 Jest test suites (auth, messages, websocket, rateLimit, sessionCleanup, errorHandling, users) |
 | `backend/jest.config.js` | `testEnvironment: node`, `testTimeout: 10000` |
 | `backend/package.json` | Scripts: `test` (Jest, NODE_ENV=test, runInBand), `dev` (nodemon) |
 | `backend/.env` | Production/dev environment variables |
@@ -70,7 +73,7 @@ messaging-app/
 ## Notes
 - `AGENTS.md` — agent instructions (commands, test rules, invariants)
 - `node_modules/` is excluded — install with `npm install`
-- Tests: `npm test` from `backend/` — 6 suites, 37 tests, sequential (`--runInBand`) against the test DB (`.env.test`)
+- Tests: `npm test` from `backend/` — 7 suites, 40 tests, sequential (`--runInBand`) against the test DB (`.env.test`)
 - Test script uses `cross-env` + `NODE_OPTIONS=--experimental-vm-modules` (portable env vars; Jest require(esm) for the `cookie` package)
 - `Progress.md` tracks project progress
 - `BuildLog.md` contains build logs

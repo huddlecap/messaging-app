@@ -39,7 +39,7 @@ A minimal UI wired to the existing backend. No styling polish — just enough
 to replace Postman for manual testing and prove the app works end-to-end
 for a real user in a browser.
 
-- [ ] Backend: GET /api/users (all users except self, requireAuth) + tests
+- [x] Backend: GET /api/users (all users except self, requireAuth) + tests
 - [ ] Backend: replaced WebSocket closed with code 4001 and reason "replaced"
       + test
 - [ ] Frontend scaffold (Vite + React) with dev proxy for /api and /ws;

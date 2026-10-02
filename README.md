@@ -9,7 +9,7 @@ Backend-only messaging API: user registration/login with session cookies, direct
 - **Database:** PostgreSQL (Neon) via `pg`
 - **Real-time:** `ws` WebSocket server
 - **Auth:** session cookie (`httpOnly`, `sameSite=strict`), passwords hashed with `bcrypt`
-- **Tests:** Jest + Supertest (37 tests, 6 suites)
+- **Tests:** Jest + Supertest (40 tests, 7 suites)
 - **Dev:** nodemon
 
 ## Setup
@@ -40,7 +40,7 @@ npm run dev
 npm test
 ```
 
-Runs all 6 suites (37 tests) against the test database and must exit 0. Testing rules and quirks (shared DB, `--runInBand`, rate-limiter opt-in, etc.) are documented in [AGENTS.md](AGENTS.md).
+Runs all 7 suites (40 tests) against the test database and must exit 0. Testing rules and quirks (shared DB, `--runInBand`, rate-limiter opt-in, etc.) are documented in [AGENTS.md](AGENTS.md).
 
 ## Architecture
 
@@ -67,6 +67,12 @@ File-by-file map: [Project_Structure.md](Project_Structure.md) · Full technical
 | Method | Path | Description |
 |--------|------|-------------|
 | `GET` | `/api/messages/:otherUserId` | Conversation history, cursor pagination (`?limit=`, `?before=`) |
+
+**Users** (`/api/users`, requires session)
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/api/users` | All users except the caller — `{ users: [{ id, username }] }`. MVP limitation: every username is visible to any logged-in user |
 
 **WebSocket** — connect with the `session_id` cookie, then exchange JSON:
 
