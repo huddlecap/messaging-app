@@ -89,6 +89,10 @@ Frontend (run from `frontend/`):
   generates a `client_message_id` with `crypto.randomUUID()` per send. The
   Send button is disabled unless a user is selected, the socket is open,
   and the text is non-empty.
+- Logout is a `Log out` link in the shell: `api.logout()` then
+  `setUser(null)` unconditionally, so a failed request still clears the
+  local session. `setUser(null)` also closes the socket (intentional close,
+  no reconnect) via the effect cleanup.
 
 ## Invariants
 - **`src/db/schema.sql` must mirror the live DB** (verified against

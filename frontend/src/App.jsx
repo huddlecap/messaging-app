@@ -104,6 +104,15 @@ function App() {
     return client.send(payload)
   }
 
+  async function handleLogout() {
+    try {
+      await api.logout()
+    } catch (error) {
+      console.error('Logout failed:', error)
+    }
+    setUser(null)
+  }
+
   if (user === undefined) {
     return <main className="checking">Checking session…</main>
   }
@@ -132,6 +141,9 @@ function App() {
           ? `Reconnecting in ${Math.max(1, Math.round(socketState.detail / 1000))}s…`
           : STATUS_TEXT[socketState.status] || 'Not connected'}
       </p>
+      <button type="button" className="link logout" onClick={handleLogout}>
+        Log out
+      </button>
       <UserPicker onSelect={setSelectedUser} />
       {selectedUser && (
         <Conversation

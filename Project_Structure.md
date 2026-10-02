@@ -79,7 +79,7 @@ messaging-app/
 | `frontend/vite.config.js` | Dev server config — proxies `/api` and `/ws` to `localhost:3000` |
 | `frontend/package.json` | Scripts: `dev` (Vite), `build`, `lint` (oxlint), `preview` |
 | `frontend/src/api.js` | HTTP client — `fetch` wrapper, `ApiError`, single 401 hook (`setUnauthorizedHandler`), auth/users/history endpoints |
-| `frontend/src/App.jsx` | App shell — session check on load, 401 hook wiring, switches between auth screen and signed-in view |
+| `frontend/src/App.jsx` | App shell — session check on load, 401 hook wiring, socket lifecycle, logout, switches between auth screen and signed-in view |
 | `frontend/src/components/AuthScreen.jsx` | Login/register form — client-side validation mirroring the backend rules, server errors shown verbatim |
 | `frontend/src/components/UserPicker.jsx` | Fetches and lists users, handles selection |
 | `frontend/src/components/Conversation.jsx` | Displays message history and live messages for the selected user |

@@ -530,3 +530,20 @@
   clears the input, and disables the button again. oxlint clean,
   vite build passes
 - Backend untouched this step — 7 suites / 41 tests still stand from step 35
+
+## 42. Logout
+
+- A "Log out" link sits under the status line in the shell. handleLogout
+  calls api.logout() and then setUser(null) unconditionally — if the
+  request fails (backend down, network error) the local session is still
+  cleared, which is the right call for an MVP: the user asked to leave
+- setUser(null) does three things at once: the auth screen renders, the
+  socket effect's cleanup runs client.close() (intentional close, so no
+  reconnect is scheduled), and the 401 hook is unregistered. No separate
+  teardown code was needed
+- The backend deletes the session row and clears the cookie; verified in
+  DevTools that session_id is gone after logout
+- Gate: clicking Log out shows the auth screen and clears the cookie;
+  logging back in restores the shell with "Connected" and the user picker.
+  oxlint clean, vite build passes
+- Backend untouched this step — 7 suites / 41 tests still stand from step 35

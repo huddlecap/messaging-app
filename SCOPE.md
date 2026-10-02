@@ -53,7 +53,7 @@ for a real user in a browser.
 - [x] Conversation view (first 50 messages, live append, no duplicates)
 - [x] Message composer (client_message_id per send, disabled while socket is
       down)
-- [ ] Logout
+- [x] Logout
 - [ ] Manual end-to-end verification; backend tests green
 
 Done when: register, login, send/receive live, view history, and logout all

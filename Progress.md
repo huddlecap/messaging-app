@@ -202,5 +202,5 @@ Source: `src/ws/index.js`
 
 **Frontend:**
 - No frontend tests (Phase 3); verification so far is manual via the browser plus `oxlint` and `vite build`.
-- Auth screen, WebSocket client, user picker, conversation view, and message composer are working. Logout remains.
+- Auth screen, WebSocket client, user picker, conversation view, message composer, and logout are working. All Phase 2 UI steps are complete.
 - No logout button yet (Step 10), no read-receipt UI, no presence/typing indicators, no pagination UI — history is the first 50 messages.
