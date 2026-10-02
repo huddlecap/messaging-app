@@ -68,6 +68,10 @@ Frontend (run from `frontend/`):
   `loginLimiter` 10 per 15 min with `skipSuccessfulRequests`.
 - `src/db/sessionCleanup.js`: hourly `DELETE ... expires_at < NOW()`; the
   interval is cleared by shutdown/`afterAll`.
+- `frontend/src/api.js` is the **only** place the frontend calls HTTP; every
+  request goes through its `fetch` wrapper, which throws `ApiError(status,
+  message)` and routes **all** 401s through `setUnauthorizedHandler` (set once
+  by the app shell) so components never hand-roll 401 handling.
 
 ## Invariants
 - **`src/db/schema.sql` must mirror the live DB** (verified against

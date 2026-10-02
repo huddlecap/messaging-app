@@ -387,3 +387,33 @@
   holds only the Linux native binding (@rolldown/binding-linux-x64-gnu), and
   Windows Node would fail to load it. The backend has no native bindings and
   runs fine from either shell
+
+## 37. API client — one fetch wrapper, one 401 hook
+
+- frontend/src/api.js is now the only place the frontend performs HTTP. Every
+  call goes through a private request() wrapper: credentials 'include' (the
+  session cookie is the whole auth story), JSON body/content-type set only when
+  a body exists, and the response parsed leniently — a non-JSON body becomes
+  null instead of throwing a parse error that would mask the real failure
+- Non-2xx throws ApiError(status, message) rather than returning a bag of
+  fields for every caller to check, and the message is taken from the backend's
+  own { error } body so the UI shows "Username must be 3-50 characters"
+  verbatim instead of a reworded near-miss. Falls back to
+  `Request failed (status)` when there's no error field
+- Central 401: one module-level handler slot set via setUnauthorizedHandler.
+  Any 401 fires it before throwing, so a session expiring mid-conversation
+  needs exactly one reaction (show the auth screen) instead of every component
+  catching its own — this is what the logout/expired-session handling in later
+  steps will hook into
+- history(otherUserId, { limit, before }) builds the query string with
+  URLSearchParams and omits empty params, matching the backend's rules
+  (limit 1-100, default 50; before = id < cursor)
+- Endpoint surface kept deliberately small: me, login, register, logout,
+  listUsers, history. Sending messages is WebSocket-only, so there is
+  deliberately no HTTP send endpoint here
+- Gate: oxlint clean; in the browser at :5173 — module exports as expected,
+  me() → {user:{id:5,username:'devuser1'}} with the session cookie intact,
+  a 400 surfaced as ['ApiError', 400, 'Username must be 3-50 characters'], and
+  a bad password produced both the handler log and
+  ['ApiError', 401, 'Invalid username or password']
+- Backend untouched this step — 7 suites / 41 tests still stand from step 35

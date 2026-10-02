@@ -58,6 +58,7 @@ Runs all 7 suites (41 tests) against the test database and must exit 0. Testing 
 - `src/ws/index.js` — session-cookie auth on upgrade, one socket per user (old one closed with 4001 `"replaced"`), heartbeats, read receipts, `client_message_id` dedup
 - `src/validation.js` — single source of input rules for HTTP + WS
 - `src/db/` — pool, schema (`schema.sql` mirrors the live DB), hourly session cleanup
+- `frontend/src/api.js` — single HTTP entry point: `fetch` wrapper, `ApiError`, one central 401 handler
 
 File-by-file map: [Project_Structure.md](Project_Structure.md) · Full technical log: [Progress.md](Progress.md)
 

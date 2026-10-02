@@ -78,6 +78,7 @@ messaging-app/
 | `backend/package.json` | Scripts: `test` (Jest, NODE_ENV=test, runInBand), `dev` (nodemon) |
 | `frontend/vite.config.js` | Dev server config — proxies `/api` and `/ws` to `localhost:3000` |
 | `frontend/package.json` | Scripts: `dev` (Vite), `build`, `lint` (oxlint), `preview` |
+| `frontend/src/api.js` | HTTP client — `fetch` wrapper, `ApiError`, single 401 hook (`setUnauthorizedHandler`), auth/users/history endpoints |
 | `backend/.env` | Production/dev environment variables |
 | `backend/.env.test` | Test environment variables (test database) |
 | `backend/.gitignore` | Git ignore rules |
