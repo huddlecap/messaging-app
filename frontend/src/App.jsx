@@ -18,6 +18,7 @@ function App() {
   const [user, setUser] = useState(undefined)
   const [socketState, setSocketState] = useState({ status: 'idle' })
   const [replacedFor, setReplacedFor] = useState(null)
+  const [logoutError, setLogoutError] = useState(null)
   const [selectedUser, setSelectedUser] = useState(null)
   const [messages, setMessages] = useState([])
   const messageIdsRef = useRef(new Set())
@@ -105,12 +106,14 @@ function App() {
   }
 
   async function handleLogout() {
+    setLogoutError(null)
     try {
       await api.logout()
+      setUser(null)
     } catch (error) {
       console.error('Logout failed:', error)
+      setLogoutError(error.message || 'Logout failed')
     }
-    setUser(null)
   }
 
   if (user === undefined) {
@@ -144,6 +147,7 @@ function App() {
       <button type="button" className="link logout" onClick={handleLogout}>
         Log out
       </button>
+      {logoutError && <p className="error">{logoutError}</p>}
       <UserPicker onSelect={setSelectedUser} />
       {selectedUser && (
         <Conversation

@@ -40,14 +40,13 @@ to replace Postman for manual testing and prove the app works end-to-end
 for a real user in a browser.
 
 - [x] Backend: GET /api/users (all users except self, requireAuth) + tests
-- [x] Backend: replaced WebSocket closed with code 4001 and reason "replaced"
-      + test
+- [x] Backend: replaced WebSocket closed with code 4001 and reason "replaced" + test
 - [x] Frontend scaffold (Vite + React) with dev proxy for /api and /ws;
       session cookie and WebSocket verified through the proxy
 - [x] API client (fetch wrapper, error handling, central 401 handling)
 - [x] Auth screen and app shell (register/login, client validation, errors
       shown, session check on load)
-- [ ] WebSocket client (reconnect with backoff, replaced-tab handling,
+- [x] WebSocket client (reconnect with backoff, replaced-tab handling,
       session check, no reconnect on intentional close)
 - [x] User picker
 - [x] Conversation view (first 50 messages, live append, no duplicates)

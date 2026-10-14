@@ -81,12 +81,17 @@ router.post("/login", loginLimiter, async (req, res) => {
 router.post("/logout", async (req, res) => {
   const sessionId = req.cookies.session_id;
 
-  if (sessionId) {
-    await pool.query("DELETE FROM sessions WHERE id = $1", [sessionId]);
-  }
+  try {
+    if (sessionId) {
+      await pool.query("DELETE FROM sessions WHERE id = $1", [sessionId]);
+    }
 
-  res.clearCookie("session_id");
-  res.json({ message: "Logged out" });
+    res.clearCookie("session_id");
+    res.json({ message: "Logged out" });
+  } catch (err) {
+    console.error("Logout error:", err);
+    res.status(500).json({ error: "Something went wrong" });
+  }
 });
 
 module.exports = router;

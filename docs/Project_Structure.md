@@ -4,12 +4,13 @@
 messaging-app/
 ├── .git/
 ├── AGENTS.md
-├── Architecture_Decisions.md
-├── BuildLog.md
-├── Progress.md
-├── Project_Structure.md
 ├── README.md
-├── SCOPE.md
+├── docs/
+│   ├── Architecture_Decisions.md
+│   ├── BuildLog.md
+│   ├── Progress.md
+│   ├── Project_Structure.md
+│   └── SCOPE.md
 ├── backend/
     ├── .env                    # production/dev environment variables
     ├── .env.test               # test environment variables (test DB)
@@ -94,6 +95,6 @@ messaging-app/
 - `node_modules/` is excluded — install with `npm install`
 - Tests: `npm test` from `backend/` — 7 suites, 41 tests, sequential (`--runInBand`) against the test DB (`.env.test`)
 - Test script uses `cross-env` + `NODE_OPTIONS=--experimental-vm-modules` (portable env vars; Jest require(esm) for the `cookie` package)
-- `Progress.md` tracks project progress
-- `BuildLog.md` contains build logs
-- `Architecture_Decisions.md` / `SCOPE.md` — decisions and scope
+- `docs/Progress.md` tracks project progress
+- `docs/BuildLog.md` contains build logs
+- `docs/Architecture_Decisions.md` / `docs/SCOPE.md` — decisions and scope

@@ -60,7 +60,7 @@ Runs all 7 suites (41 tests) against the test database and must exit 0. Testing 
 - `src/db/` — pool, schema (`schema.sql` mirrors the live DB), hourly session cleanup
 - `frontend/src/api.js` — single HTTP entry point: `fetch` wrapper, `ApiError`, one central 401 handler
 
-File-by-file map: [Project_Structure.md](Project_Structure.md) · Full technical log: [Progress.md](Progress.md)
+File-by-file map: [Project_Structure.md](docs/Project_Structure.md) · Full technical log: [Progress.md](docs/Progress.md)
 
 ## API
 
@@ -96,4 +96,4 @@ File-by-file map: [Project_Structure.md](Project_Structure.md) · Full technical
 
 ## Not Yet Implemented
 
-No offline delivery queue, presence/typing indicators, group chats, attachments, CORS, or HTTPS (`secure: false` cookie). Full list: [Progress.md](Progress.md) §7.
+No offline delivery queue, presence/typing indicators, group chats, attachments, CORS, or HTTPS (`secure: false` cookie). Full list: [Progress.md](docs/Progress.md) §7.

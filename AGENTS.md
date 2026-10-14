@@ -104,8 +104,8 @@ Frontend (run from `frontend/`):
 - Never touch the production DB from tests/scripts — `NODE_ENV=test` or
   explicit `.env.test` only.
 - Session cookie is `secure: false` (no HTTPS yet) — intentional, documented
-  in `Progress.md`.
+   in `docs/Progress.md`.
 
 ## Repo docs (keep in sync on structural/behavioral changes)
-- `Project_Structure.md` — file tree + key files · `Progress.md` — stack,
+- `docs/Project_Structure.md` — file tree + key files · `docs/Progress.md` — stack,
   schema, API, test suite details
