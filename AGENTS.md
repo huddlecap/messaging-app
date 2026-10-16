@@ -82,17 +82,29 @@ Frontend (run from `frontend/`):
 - `frontend/src/components/UserPicker.jsx` fetches `/api/users` on mount and
   calls `onSelect(user)` when a username is clicked. App.jsx holds the
   selected user in state.
+- `frontend/src/wsClient.js` is the client half of the WebSocket: reconnect
+  with exponential backoff (1s → 15s cap, reset on success), `4001` replaced
+  handling (must NOT reconnect), `checkSession` before every open, and no
+  reconnect after an intentional close (`closedIntentionally` flag). It also
+  listens for the browser `online` event as an extra retry trigger.
 - `frontend/src/components/Conversation.jsx` is presentational — App.jsx
   owns the messages state and dedups by message id in a ref Set. The
   backend returns history newest-first; the UI reverses it to oldest-first.
-- `frontend/src/components/Composer.jsx` sends via the socket client and
-  generates a `client_message_id` with `crypto.randomUUID()` per send. The
-  Send button is disabled unless a user is selected, the socket is open,
-  and the text is non-empty.
-- Logout is a `Log out` link in the shell: `api.logout()` then
-  `setUser(null)` unconditionally, so a failed request still clears the
-  local session. `setUser(null)` also closes the socket (intentional close,
-  no reconnect) via the effect cleanup.
+- `frontend/src/components/Composer.jsx` sends via the socket client. It does
+  **not** generate `client_message_id` — `App.jsx:sendMessage` does, once at
+  enqueue time, so retries reuse the same key. Send is allowed while offline;
+  the message queues. The button is disabled only when no user is selected or
+  the text is empty.
+- Offline queue: `App.jsx` holds `pending` state plus a `pendingRef`. A
+  `setInterval` (5s, keyed on `pending.length`) resends every unresolved entry;
+  the interval clears when the queue empties. Retries are safe because the
+  backend's 23505 path returns the original row. Do **not** rely on the
+  browser's `online` event as the sole trigger — Chrome does not reliably fire
+  it when an OS wifi interface is toggled.
+- Logout is a `Log out` link in the shell: `api.logout()` then `setUser(null)`
+  **inside the try** — a failed request leaves you signed in with the error
+  shown (`logoutError`). `setUser(null)` also closes the socket (intentional
+  close, no reconnect) via the effect cleanup.
 
 ## Invariants
 - **`src/db/schema.sql` must mirror the live DB** (verified against

@@ -143,7 +143,10 @@ Source: `src/ws/index.js`
 
 **Key behavior notes:**
 - Messages are persisted before delivery.
-- No offline queue: if the receiver is offline the message is stored but not delivered later.
+- No receiver-side delivery-on-reconnect: if the receiver is offline the message
+  is stored but not pushed when they come back. They see it on next history load.
+- The sender side has an offline queue (pending messages retried every 5s and
+  on the browser `online` event); see README §Offline Message Queue.
 - No per-message auth beyond the session check at upgrade time.
 
 ---
@@ -182,7 +185,9 @@ Source: `src/ws/index.js`
 ## 7. What Is NOT Yet Implemented
 
 **API / features:**
-- No offline message delivery or delivery-on-reconnect queue.
+- No delivery-on-reconnect for the **receiver**: a message to an offline user is
+  stored and read later via history, but no push happens when they reconnect.
+  (The **sender** side does have an offline queue — see README.)
 - No endpoints for presence/online status. (`GET /api/users` now lists users, but returns every username to any logged-in user — fine for MVP, needs search/pagination or contacts before deployment.)
 - No user profile update, password reset, or email verification.
 - No message deletion or editing.

@@ -96,4 +96,20 @@ File-by-file map: [Project_Structure.md](docs/Project_Structure.md) · Full tech
 
 ## Not Yet Implemented
 
-No offline delivery queue, presence/typing indicators, group chats, attachments, CORS, or HTTPS (`secure: false` cookie). Full list: [Progress.md](docs/Progress.md) §7.
+No presence/typing indicators, group chats, attachments, CORS, or HTTPS (`secure: false` cookie). Full list: [Progress.md](docs/Progress.md) §7.
+
+### Offline Message Queue
+
+A message that can't be delivered isn't lost. It stays in a client-side
+pending queue and retries automatically — no retry button, no retyping.
+
+- Each send gets a `client_message_id` generated once, at enqueue time
+- Pending messages resend every 5s while any remain unresolved
+- A send also triggers immediately on the browser's `online` event
+- The echo from the server resolves the entry; the queue and its timer clear
+- Retries reuse the same `client_message_id`, so the `23505` path in
+  `ws/index.js` returns the original row — retries cannot duplicate
+
+Known gaps: pending messages are held in React state, so a page reload during
+an outage loses them. There is no attempt cap, and no `failed` state — a
+message that can never send retries indefinitely showing `sending…`.

@@ -1,11 +1,13 @@
-function Conversation({ messages, currentUser, otherUser }) {
+function Conversation({ messages, pending = [], currentUser, otherUser }) {
   if (!otherUser) return null
 
   return (
     <section className="conversation">
       <h2>Chat with {otherUser.username}</h2>
       <div className="messages">
-        {messages.length === 0 && <p className="status">No messages yet.</p>}
+        {messages.length === 0 && pending.length === 0 && (
+          <p className="status">No messages yet.</p>
+        )}
         {messages.map((msg) => (
           <div
             key={msg.id}
@@ -15,6 +17,12 @@ function Conversation({ messages, currentUser, otherUser }) {
           >
             <p className="content">{msg.content}</p>
             <span className="time">{new Date(msg.created_at).toLocaleTimeString()}</span>
+          </div>
+        ))}
+        {pending.map((msg) => (
+          <div key={msg.client_message_id} className="message sent">
+            <p className="content">{msg.content}</p>
+            <span className="time">sending…</span>
           </div>
         ))}
       </div>

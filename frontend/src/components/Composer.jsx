@@ -1,26 +1,16 @@
 import { useState } from 'react'
 
-function Composer({ selectedUser, socketState, onSend }) {
+function Composer({ selectedUser, onSend }) {
   const [text, setText] = useState('')
 
-  const canSend =
-    selectedUser &&
-    socketState.status === 'open' &&
-    text.trim().length > 0
+  const canSend = selectedUser && text.trim().length > 0
 
   function handleSubmit(event) {
     event.preventDefault()
     if (!canSend) return
 
-    const payload = {
-      receiver_id: selectedUser.id,
-      content: text.trim(),
-      client_message_id: crypto.randomUUID(),
-    }
-
-    if (onSend(payload)) {
-      setText('')
-    }
+    onSend({ receiver_id: selectedUser.id, content: text.trim() })
+    setText('')
   }
 
   return (

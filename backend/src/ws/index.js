@@ -153,14 +153,14 @@ function setupWebSocket(server) {
 
             try {
               const result = await pool.query(
-                "INSERT INTO messages (sender_id, receiver_id, content, client_message_id) VALUES ($1, $2, $3, $4) RETURNING id, sender_id, receiver_id, content, created_at",
+                "INSERT INTO messages (sender_id, receiver_id, content, client_message_id) VALUES ($1, $2, $3, $4) RETURNING id, sender_id, receiver_id, content, created_at, client_message_id",
                 [userId, receiver_id, content, client_message_id]
               );
               savedMessage = result.rows[0];
             } catch (err) {
               if (err.code === "23505") {
                 const existing = await pool.query(
-                  "SELECT id, sender_id, receiver_id, content, created_at FROM messages WHERE client_message_id = $1",
+                  "SELECT id, sender_id, receiver_id, content, created_at, client_message_id FROM messages WHERE client_message_id = $1",
                   [client_message_id]
                 );
                 savedMessage = existing.rows[0];

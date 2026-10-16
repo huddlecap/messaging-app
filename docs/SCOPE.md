@@ -50,9 +50,11 @@ for a real user in a browser.
       session check, no reconnect on intentional close)
 - [x] User picker
 - [x] Conversation view (first 50 messages, live append, no duplicates)
-- [x] Message composer (client_message_id per send, disabled while socket is
-      down)
+- [x] Message composer (client_message_id per send, sends while socket is down)
 - [x] Logout
+- [x] Offline message queue — pending messages retry every 5s and on the
+      browser `online` event; retries reuse `client_message_id` so they
+      cannot duplicate. Known gaps: lost on page reload, no attempt cap
 - [x] Manual end-to-end verification; backend tests green
 
 Done when: register, login, send/receive live, view history, and logout all
@@ -94,3 +96,5 @@ Done when: defined later — deliberately out of scope until Phase 5 is complete
 - No profile editing, password reset, or email verification
 - No horizontal scaling until Phase 5
 - No multi-tab support (new connection replaces old)
+- Offline queue does not survive a page reload; no attempt cap and no
+  `failed` state for messages that can never be delivered

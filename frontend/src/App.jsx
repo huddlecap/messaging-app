@@ -21,7 +21,9 @@ function App() {
   const [logoutError, setLogoutError] = useState(null)
   const [selectedUser, setSelectedUser] = useState(null)
   const [messages, setMessages] = useState([])
+  const [pending, setPending] = useState([])
   const messageIdsRef = useRef(new Set())
+  const pendingRef = useRef([])
   const clientRef = useRef(null)
 
   useEffect(() => {
@@ -54,12 +56,22 @@ function App() {
       onStatus: (status, detail) => setSocketState({ status, detail }),
       onReplaced: () => setReplacedFor(user.id),
       onMessage: (payload) => {
-        if (payload && payload.id && payload.content) {
-          const id = payload.id
-          if (!messageIdsRef.current.has(id)) {
-            messageIdsRef.current.add(id)
-            setMessages((prev) => [...prev, payload])
-          }
+        if (!payload || !payload.id || !payload.content) return
+
+        if (payload.client_message_id) {
+          setPending((prev) => {
+            const next = prev.filter(
+              (m) => m.client_message_id !== payload.client_message_id,
+            )
+            pendingRef.current = next
+            return next
+          })
+        }
+
+        const id = payload.id
+        if (!messageIdsRef.current.has(id)) {
+          messageIdsRef.current.add(id)
+          setMessages((prev) => [...prev, payload])
         }
       },
     })
@@ -72,6 +84,41 @@ function App() {
       clientRef.current = null
     }
   }, [user])
+
+  useEffect(() => {
+    if (socketState.status !== 'open') return
+
+    const queued = pendingRef.current
+    if (queued.length === 0) return
+
+    const client = clientRef.current
+    queued.forEach((entry) => {
+      client?.send({
+        receiver_id: entry.receiver_id,
+        content: entry.content,
+        client_message_id: entry.client_message_id,
+      })
+    })
+  }, [socketState.status])
+
+  useEffect(() => {
+    if (pending.length === 0) return undefined
+
+    const interval = setInterval(() => {
+      const client = clientRef.current
+      if (!client || !client.isOpen()) return
+
+      pendingRef.current.forEach((entry) => {
+        client.send({
+          receiver_id: entry.receiver_id,
+          content: entry.content,
+          client_message_id: entry.client_message_id,
+        })
+      })
+    }, 5000)
+
+    return () => clearInterval(interval)
+  }, [pending.length])
 
   useEffect(() => {
     if (!selectedUser) {
@@ -99,10 +146,17 @@ function App() {
     }
   }, [selectedUser])
 
-  function sendMessage(payload) {
-    const client = clientRef.current
-    if (!client) return false
-    return client.send(payload)
+  function sendMessage({ receiver_id, content }) {
+    const entry = {
+      client_message_id: crypto.randomUUID(),
+      receiver_id,
+      content,
+    }
+
+    pendingRef.current = [...pendingRef.current, entry]
+    setPending((prev) => [...prev, entry])
+
+    clientRef.current?.send(entry)
   }
 
   async function handleLogout() {
@@ -136,6 +190,10 @@ function App() {
     )
   }
 
+  const visiblePending = selectedUser
+    ? pending.filter((m) => m.receiver_id === selectedUser.id)
+    : []
+
   return (
     <main className="app">
       <h1>Signed in as {user.username}</h1>
@@ -152,6 +210,7 @@ function App() {
       {selectedUser && (
         <Conversation
           messages={messages}
+          pending={visiblePending}
           currentUser={user}
           otherUser={selectedUser}
         />
@@ -159,7 +218,6 @@ function App() {
       {selectedUser && (
         <Composer
           selectedUser={selectedUser}
-          socketState={socketState}
           onSend={sendMessage}
         />
       )}

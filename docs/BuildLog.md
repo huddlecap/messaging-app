@@ -563,3 +563,55 @@
 - Frontend untouched this step — oxlint and vite build were clean at the
   end of step 10. All Phase 2 checklist items (0–11) are ticked
 - Backend untouched this step — 7 suites / 41 tests still green
+
+## 44. Offline message queue — pending sends retry automatically
+
+- Problem: a message sent while the network is silently dead (wifi toggled,
+  no TCP FIN/RST) was lost outright. socket.readyState stays OPEN, so
+  wsClient.send() returned true, the composer cleared the input, and the
+  frame went into a black hole. The server never saw it; nothing reported
+  the failure
+- Backend: added client_message_id to the RETURNING clause on the INSERT
+  (ws/index.js:156) and to the 23505 fallback SELECT (:163). Without it the
+  echo carried no key and the client could not match a reply to the message
+  it was waiting on. Both are additive — existing echo assertions unaffected
+- Frontend: added a pending queue in App.jsx. sendMessage() now generates the
+  client_message_id once at enqueue time and pushes the entry; onMessage
+  resolves it by matching payload.client_message_id before the existing dedup
+  Set runs. Pending and confirmed rows never overlap: pending has no id, so it
+  never enters messageIdsRef
+- Composer: removed the socket-state gate from canSend so a message can be
+  sent while offline — it queues rather than being refused. The UUID moved out
+  of the composer so retries reuse the same key, which is what makes the
+  backend's 23505 path return the original row instead of inserting a
+  duplicate
+- Conversation: renders pending bubbles after confirmed ones, keyed by
+  client_message_id (pending rows have no id yet), showing "sending…"
+- Flush trigger, attempt 1: an effect keyed on socketState.status === 'open'.
+  This did NOT work. It only fires when the status value changes, but a silent
+  network drop produces no 'close' event, so the status never leaves 'open' and
+  the effect never re-runs. Verified manually: wifi off → send → wifi on →
+  message stuck on "sending…" indefinitely
+- Flush trigger, attempt 2: a window 'online' listener in wsClient.js that
+  force-reconnects. Also did NOT work in the browser. Chrome does not reliably
+  fire 'online' when an OS wifi interface is toggled via quick settings — the
+  transition has to register as a real offline state first. The earlier fix was
+  built on a signal that never fired, which was the mistake worth recording
+- Flush trigger, final: dropped the reliance on browser events entirely. While
+  pending is non-empty, a setInterval in App.jsx resends every unresolved entry
+  every 5s. Keyed on pending.length, so the timer starts when the queue becomes
+  non-empty and clears the moment an echo empties it — no timer runs in the
+  normal case. The 'online' listener is kept alongside it since it costs
+  nothing and, when it does fire, retries sooner
+- Verified manually: two messages queued while offline both delivered within
+  5s of the network returning, with no duplicates and no user action
+- Backend untouched this step beyond the two RETURNING/SELECT columns —
+  7 suites / 41 tests green. Frontend oxlint clean, vite build passes
+- Known gaps, all documented in README and SCOPE: pending lives in React
+  state so a page reload during an outage loses it; there is no attempt cap;
+  there is no 'failed' state, so a message that can never be delivered retries
+  forever showing "sending…"
+- Open issue: two messages queued offline were observed arriving in reverse
+  order (hi2 before hi1). Cause not yet identified — either the echo
+  ordering in the poller or the .reverse() in App.jsx's history load.
+  Not fixed

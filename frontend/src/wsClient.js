@@ -86,9 +86,25 @@ export function createSocketClient({
     ws.addEventListener('close', (event) => handleClose(ws, event))
   }
 
-  async function connect() {
-    closedIntentionally = false
+  function handleOnline() {
+    if (closedIntentionally) return
+    if (socket) {
+      socket.close(4000, 'network back')
+      socket = null
+    }
+    clearRetry()
+    attempt = 0
+    open()
+  }
 
+  function connect() {
+    closedIntentionally = false
+    window.addEventListener('online', handleOnline)
+
+    checkSessionAndOpen()
+  }
+
+  async function checkSessionAndOpen() {
     if (checkSession) {
       setStatus('checking')
       try {
@@ -111,6 +127,7 @@ export function createSocketClient({
   function close() {
     closedIntentionally = true
     clearRetry()
+    window.removeEventListener('online', handleOnline)
     if (socket) {
       socket.close(1000, 'client closed')
       socket = null
