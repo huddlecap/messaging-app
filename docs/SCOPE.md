@@ -62,10 +62,23 @@ work through the UI.
 
 ### Phase 3 — Automated Testing
 
-Formal test coverage beyond the integration tests in Phase 1 — likely
-expanding to the frontend, and any end-to-end flows across both.
+Formal test coverage beyond the integration tests in Phase 1: frontend logic
+tests plus one end-to-end flow across both apps.
+
+- [x] Frontend: install Vitest + jsdom, add `test` script
+- [x] Frontend: `wsClient.js` tests (exponential backoff reconnect, `4001 replaced` handling, session check before open, no reconnect on intentional close)
+- [x] E2E: install Playwright; `webServer` config starts the backend (`NODE_ENV=test`, test DB) and Vite (`:5173`). Browser launch is blocked until `sudo npx playwright install-deps chromium` is run (missing `libnspr4.so` on WSL)
+- [ ] E2E: unique test users per run + global teardown that deletes them
+- [ ] E2E: happy path with two browser contexts (register, login, live send/receive, history, logout via the logout route)
+- [ ] Root-level single command that runs Jest, then Vitest, then Playwright in sequence (they share the test DB) with no manual steps
+- [ ] Backend suite still green (7 suites / 41 tests)
+- [ ] Sanity check: for each new test, temporarily break the code it covers and confirm the test fails
+- [ ] Stretch (only if time allows): offline pending-queue tests
+
 Done when: core flows are covered by a test suite that runs without manual
 steps.
+
+Deferred: API client tests, component tests, replaced-tab and reconnect E2E flows, logout button.
 
 ### Phase 4 — Git Workflow + CI/CD
 

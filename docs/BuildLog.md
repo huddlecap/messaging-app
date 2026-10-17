@@ -79,24 +79,13 @@
 
 ## 10. WebSocket implementation
 
-- Installed the ws package for the WebSocket server, and cookie separately for
-  manually parsing cookies off the raw upgrade request (Express's cookie-parser
-  only works inside the normal HTTP request cycle, not the upgrade event)
-- Built src/ws/index.js: same auth logic as the REST middleware, but written
-  independently since WebSocket upgrades happen outside Express's request
-  pipeline entirely — reads the cookie manually, validates the session against
-  the DB, only completes the WebSocket handshake (wss.handleUpgrade) if valid
-- Kept a userSockets Map (in-memory, RAM only, wiped on server restart) —
-  user_id -> live socket, so the server knows who's currently connected
-- Bug hit: cookie package v2 renamed its export from parse to parseCookie —
-  caused a TypeError until traced with node -e "console.log(require('cookie'))"
-  to see the actual exports
-- Message-send logic: on receiving a message over a socket, always insert it
-  into the messages table first (unconditional — this is the durability
-  guarantee), then check userSockets for the receiver's socket — if present,
-  push it live; if absent, do nothing further (no queue, no pending state —
-  the DB row already guarantees it isn't lost). Also echoes the saved message
-  back to the sender as confirmation
+- Added `ws` and `cookie`. Auth on upgrade is written independently of
+  `requireAuth` — the upgrade event never passes through Express, so
+  `cookie-parser` never runs and the cookie header is parsed manually
+- `userSockets` Map (user_id → live socket), RAM only, cleared on restart
+- Send: INSERT first (durability), then push to the receiver if connected,
+  then echo to the sender. No queue — the row guarantees nothing is lost
+- Bug hit: `cookie` v2 renamed `parse` to `parseCookie`, causing a TypeError
 
 ## 11. Postman WebSocket testing
 
@@ -299,21 +288,9 @@
 
 ## 33. Phase 2 checklist added (docs only)
 
-- Broke Phase 2 into 11 one-commit steps, each mapped to one checklist item in
-  SCOPE.md: backend user list, WebSocket 4001 replaced-socket code, Vite +
-  React scaffold behind a dev proxy, API client, auth shell, WebSocket client,
-  user picker, conversation view, composer, logout, manual end-to-end
-- Two backend gaps surfaced while planning the frontend and became their own
-  steps rather than silent workarounds: there was no way for the UI to pick a
-  receiver (no GET /api/users), and a replaced socket died as an unclean 1006
-  (terminate() with no code), which the browser cannot tell apart from a
-  network drop — hence 4001 "replaced" so the client knows not to reconnect
-- Chose a Vite dev proxy for /api and /ws over adding CORS to the backend, so
-  the session cookie works same-origin and Phase 1's verified HTTP surface
-  stays untouched
-- Excluded by design (already non-goals or later phases): read receipt UI,
-  presence/online, typing indicators, multi-tab support, styling polish,
-  frontend tests (Phase 3), pagination UI (first 50 messages only)
+- Broke Phase 2 into one-commit steps, each mapped to an SCOPE.md item
+- Chose a Vite dev proxy for `/api` and `/ws` over adding CORS, so the session
+  cookie stays same-origin and Phase 1's HTTP surface is untouched
 
 ## 34. GET /api/users — 3 tests
 
@@ -335,139 +312,61 @@
 
 ## 35. Replaced WebSocket closes with 4001 "replaced"
 
-- Swapped existingSocket.terminate() for close(4001, "replaced") so the
-  browser can tell "another tab took over" apart from "the network dropped" —
-  both used to arrive as an unclean 1006, and the frontend has to react
-  differently to each (show the replaced screen vs. reconnect)
-- 4001 is inside the 4000-4999 application range reserved for app-specific
-  codes; 1001/1000 (going away / normal) are taken by the protocol itself and
-  1006 can never be sent deliberately
-- close() is a handshake, so a 2s fallback terminate() covers a peer that never
-  echoes the close frame and would otherwise hang in CLOSING forever; timer is
-  unref'd and cleared on close so it can't keep the process alive
-- Hit and fixed: switching from terminate() to close() opened a window where a
-  socket sits in CLOSING, and the 30s heartbeat would call ping() on it — ws
-  throws on a non-OPEN socket and an exception inside setInterval is uncaught,
-  which would kill the server. The heartbeat now skips non-OPEN sockets
-- waitForClose in websocket.test.js now resolves { code, reason } instead of
-  just the code; the existing reconnect test ignores the return value so it
-  passed unchanged, and the new test asserts 4001 / "replaced"
-- Gate: 7 suites / 41 tests passing, exit 0
+- `terminate()` → `close(4001, "replaced")` so the client can tell "another tab
+  took over" from "network dropped" — both previously arrived as an unclean
+  1006. 4001 sits in the 4000-4999 app range; 1006 can never be sent deliberately
+- `close()` is a handshake, so a 2s `terminate()` fallback covers a peer that
+  never echoes the frame; timer is `unref`'d and cleared on close
+- Hit and fixed: `close()` opens a CLOSING window, and the 30s heartbeat would
+  `ping()` it — `ws` throws on non-OPEN sockets and an uncaught throw inside
+  `setInterval` kills the server. Heartbeat now skips non-OPEN sockets
 
 ## 36. Frontend scaffold — Vite + React behind a dev proxy
 
-- Ran create-vite (react template) into frontend/, no interactive prompts;
-  24 packages installed, 0 vulnerabilities. Scaffolding includes its own
-  .gitignore covering node_modules, dist and *.log, so neither can be staged
-- vite.config.js proxies /api to http://localhost:3000 and /ws to
-  ws://localhost:3000 (ws: true), which keeps the browser same-origin on
-  :5173 — the session cookie needs no CORS work and Phase 1's verified HTTP
-  surface stays untouched
-- Frontend uses relative URLs only (/api/..., ws://${location.host}/ws): no
-  env files, nothing to configure per machine. Served at
-  http://localhost:5173 — never a LAN IP, because crypto.randomUUID (used for
-  client_message_id) is only available in a secure context and localhost
-  qualifies while a LAN IP does not
-- Scaffold ships oxlint; frontend lint exists but is not a project gate (the
-  backend still has none — gate remains npm test in backend/)
-- Hot reload was dead on arrival and it was worth chasing down: /mnt/c is a 9p
-  (drvfs) mount, which delivers no inotify events, so Vite never learned that
-  files had changed. Proved it rather than guessing — appended
-  `body { background: red !important; }` to index.css and found the rule
-  present on disk (tail) yet absent from what the dev server handed the browser
-  (curl http://localhost:5173/src/index.css | grep -c "background: red" → 0).
-  A hard reload didn't help either, because the staleness was server-side:
-  Vite answered from its in-memory cache instead of re-reading the disk. Fixed
-  with server.watch.usePolling; after restarting, the same edit repainted the
-  page live with no F5. Would have silently broken every later UI step
-- Gate: proxy verified end-to-end from the browser at :5173 — logged-out
-  /api/auth/me → 401, register → 201, login → 200 with session_id cookie,
-  WebSocket ws://localhost.host/ws → onopen; hot reload confirmed live
-- Vite must run in WSL, not Git Bash: npm install ran under WSL so node_modules
-  holds only the Linux native binding (@rolldown/binding-linux-x64-gnu), and
-  Windows Node would fail to load it. The backend has no native bindings and
-  runs fine from either shell
+- create-vite react template into `frontend/`. Config proxies `/api` and `/ws`
+  to `:3000`, keeping the browser same-origin on `:5173` — session cookie needs
+  no CORS work and Phase 1's HTTP surface stays untouched
+- Relative URLs only, no env files. Never open a LAN IP:
+  `crypto.randomUUID` needs a secure context, and only localhost qualifies
+- `server.watch.usePolling` is required, not optional: `/mnt/c` is a 9p mount
+  and delivers no inotify events, so Vite serves stale code from memory even
+  after a hard reload. Diagnose by diffing the file on disk against
+  `curl localhost:5173/src/index.css`
+- Vite must run in WSL, not Git Bash — `node_modules` holds only the Linux
+  native binding. Backend has no native bindings and runs from either shell
 
 ## 37. API client — one fetch wrapper, one 401 hook
 
-- frontend/src/api.js is now the only place the frontend performs HTTP. Every
-  call goes through a private request() wrapper: credentials 'include' (the
-  session cookie is the whole auth story), JSON body/content-type set only when
-  a body exists, and the response parsed leniently — a non-JSON body becomes
-  null instead of throwing a parse error that would mask the real failure
-- Non-2xx throws ApiError(status, message) rather than returning a bag of
-  fields for every caller to check, and the message is taken from the backend's
-  own { error } body so the UI shows "Username must be 3-50 characters"
-  verbatim instead of a reworded near-miss. Falls back to
-  `Request failed (status)` when there's no error field
-- Central 401: one module-level handler slot set via setUnauthorizedHandler.
-  Any 401 fires it before throwing, so a session expiring mid-conversation
-  needs exactly one reaction (show the auth screen) instead of every component
-  catching its own — this is what the logout/expired-session handling in later
-  steps will hook into
-- history(otherUserId, { limit, before }) builds the query string with
-  URLSearchParams and omits empty params, matching the backend's rules
-  (limit 1-100, default 50; before = id < cursor)
-- Endpoint surface kept deliberately small: me, login, register, logout,
-  listUsers, history. Sending messages is WebSocket-only, so there is
-  deliberately no HTTP send endpoint here
-- Gate: oxlint clean; in the browser at :5173 — module exports as expected,
-  me() → {user:{id:5,username:'devuser1'}} with the session cookie intact,
-  a 400 surfaced as ['ApiError', 400, 'Username must be 3-50 characters'], and
-  a bad password produced both the handler log and
-  ['ApiError', 401, 'Invalid username or password']
-- Backend untouched this step — 7 suites / 41 tests still stand from step 35
+- `frontend/src/api.js` is the only place the frontend does HTTP. One private
+  `request()` wrapper: `credentials: 'include'`, body/headers set only when a
+  body exists, and lenient JSON parsing so a non-JSON body yields `null` rather
+  than masking the real failure
+- Non-2xx throws `ApiError(status, message)`, taking the message from the
+  backend's own `{ error }` body so the UI shows it verbatim
+- Central 401: one module-level slot via `setUnauthorizedHandler`. Any 401 fires
+  it before throwing, so an expiring session needs one reaction, not one per
+  component
+- Surface kept small: me, login, register, logout, listUsers, history. Sending
+  is WebSocket-only, so there is deliberately no HTTP send endpoint
 
 ## 38. Auth screen and app shell
 
-- App.jsx is now a three-state shell: `undefined` (probing), `null` (no
-  session), object (signed in). On mount it calls api.me() once and a 401
-  lands on the auth screen silently — "not logged in yet" isn't an error, so
-  no error banner on first load. The cancelled flag guards the async result
-  against StrictMode's double-mount in dev
-- One useEffect registers the 401 hook (setUnauthorizedHandler → clear the
-  user) and unregisters it on unmount. From here on any 401 anywhere in the
-  app drops back to the auth screen, which is what the session-expiry and
-  logout steps will ride on
-- components/AuthScreen.jsx: login/register toggle, labelled inputs, submit
-  disabled while pending, inline field errors and the server message shown
-  verbatim. Client validation mirrors backend/src/validation.js — username
-  trimmed 3-50, password >=8 chars and <=72 **bytes** via TextEncoder (the
-  backend uses Buffer.byteLength, so .length would accept multi-byte
-  passwords the server then rejects). Login mode only checks non-empty,
-  matching validateLogin
-- Deleted the dead scaffold: App.css (184 lines of Vite demo styling), the
-  three src/assets images, and public/icons.svg. public/favicon.svg stays,
-  index.html references it. index.css keeps the :root colour variables (plus
-  a new --error for both schemes) and loses the demo rules — the template had
-  pinned #root to 1126px with a 56px h1, which fought the form layout
-- **Trap found by the gate, worth remembering: register does not create a
-  session.** authRoutes.js sets session_id only in the login handler (line
-  67), so the first version of AuthScreen — which called onAuthenticated()
-  after register — dropped the user into a "Signed in as …" shell with no
-  cookie behind it. It looked correct and was a lie: any API call would 401
-  and a reload would bounce back to the form. Fixed to option A — after
-  register the form flips to login with the username prefilled, password
-  cleared, and an "Account created — log in" notice. Chosen over auto-login
-  (option B) to keep one code path and to not spend a login from the 10 per
-  15 min budget while testing
-- **Second trap, purely a browser one: Chrome's password manager silently
-  overwrote the typed password with a saved one during register**, so the
-  account was created with a different password and the correct one was then
-  rejected with a 401. Cost us a confusing round of manual testing. Use an
-  incognito window for manual auth testing, and when a 401 looks wrong, read
-  the request Payload tab before suspecting the code
-- Also worth knowing: a failed fetch does appear in the Network tab, but only
-  while the record button is active — a paused or cleared log makes a real
-  401 look like the request never happened
-- Gate (manual, in an incognito window): existing session on load shows
-  "Signed in as devuser1" with no auth flash; deleting the cookie shows the
-  form; register with a fresh account flips to the login screen with the
-  prefilled username and clears the password; a rejected password shows the
-  backend's own "Invalid username or password"; the same password then logs
-  in; bad input is caught client-side with two inline errors and **no
-  request in the Network tab**. oxlint clean, `vite build` 18 modules
-- Backend untouched this step — 7 suites / 41 tests still stand from step 35
+- `App.jsx` is a three-state shell: `undefined` (probing), `null` (no
+  session), object (signed in). One `api.me()` on mount; a 401 lands on the
+  auth screen silently — "not logged in yet" isn't an error
+- One effect registers the 401 hook and unregisters on unmount, so any 401
+  anywhere drops back to the auth screen
+- `AuthScreen.jsx`: login/register toggle, inline field errors, server message
+  shown verbatim. Client validation mirrors `validation.js` — username trimmed
+  3-50, password ≤72 **bytes** via `TextEncoder`, not `.length` (that would
+  accept multi-byte passwords the server rejects)
+- **Register does not create a session.** `authRoutes.js` sets `session_id` only
+  on login, so an `onAuthenticated()` after register produced a signed-in shell
+  with no cookie behind it. After register the form flips to login with the
+  username prefilled and "Account created — log in"
+- Chrome's password manager silently overwrote typed passwords during register,
+  producing confusing 401s. Use incognito for manual auth testing, and read the
+  Network tab's Payload before suspecting code
 
 ## 39. User picker
 
@@ -488,48 +387,25 @@
 
 ## 40. Conversation view
 
-- components/Conversation.jsx is presentational: it receives messages,
-  currentUser and otherUser, and renders the list. Sent vs received is
-  decided by comparing sender_id with currentUser.id, which keeps the
-  component free of any fetching or socket logic
-- App.jsx owns the messages state and a messageIdsRef Set for dedup. The
-  history effect fires on selectedUser change: it resets the dedup set,
-  fetches api.history(otherUserId), and reverses the result because the
-  backend returns newest-first (id DESC) while the UI shows oldest-first
-- Live messages arrive through the WS onMessage callback. A payload counts
-  as a message when it has both id and content — read receipts carry a type
-  field instead and are ignored here, since receipt UI is out of scope.
-  The dedup check is a Set lookup, so a message that arrives both via
-  history and via the live broadcast is appended once
-- The history effect's cleanup sets cancelled, and the dedup set is reset
-  on every selectedUser change, so switching conversations can't leak
-  ids from the previous one
-- Gate: selecting a user shows the "Chat with <name>" section with either
-  the message list or "No messages yet."; switching users fires
-  GET /api/messages/<id> with status 200. oxlint clean, vite build passes
-- Backend untouched this step — 7 suites / 41 tests still stand from step 35
+- `Conversation.jsx` is presentational — it renders `messages` and decides
+  sent vs received by comparing `sender_id` with `currentUser.id`
+- `App.jsx` owns the messages state plus a `messageIdsRef` Set for dedup. The
+  history effect fires on `selectedUser` change, resets the set, fetches, and
+  reverses the result (backend returns newest-first, UI shows oldest-first)
+- Live payloads count as messages only when they carry both `id` and
+  `content`; read receipts have a `type` field and are ignored here
+- `cancelled` guards the async result and the dedup set resets on every
+  conversation change, so ids can't leak between threads
 
 ## 41. Message composer
 
-- components/Composer.jsx is a controlled form: text input plus a Send
-  button. On submit it builds { receiver_id, content, client_message_id }
-  and hands the payload to App.jsx via onSend, which calls
-  clientRef.current.send(payload). The input clears only when send()
-  returns true, so a failed send keeps the text for a retry
-- client_message_id is crypto.randomUUID() per send — a fresh id every
-  time, which is what lets the backend deduplicate retries (unique
-  violation 23505 returns the original row instead of inserting a copy)
-- The button is disabled unless a user is selected, the socket reports
-  status 'open', and the trimmed text is non-empty. That covers the
-  "disabled while socket is down" requirement without any extra state:
-  socketState already tracks connecting/reconnecting/closed
-- The composer is only rendered when selectedUser is set, and the input
-  is disabled with a "Select a user first" placeholder when it isn't
-- Gate: composer appears below the conversation with a disabled Send
-  button; typing enables it; sending appends the message to the list,
-  clears the input, and disables the button again. oxlint clean,
-  vite build passes
-- Backend untouched this step — 7 suites / 41 tests still stand from step 35
+- Controlled input plus Send. On submit it builds `{ receiver_id, content }`
+  and hands it to `App.jsx`, which generates the `client_message_id` and queues
+  the send. Send is allowed while offline; the message queues (revised in 44)
+- Button disabled unless a user is selected and trimmed text is non-empty.
+  Rendered only when `selectedUser` is set, else "Select a user first"
+- `client_message_id` is a fresh UUID per send, which is what lets the backend
+  dedupe retries via the `23505` unique violation
 
 ## 42. Logout
 
@@ -566,52 +442,28 @@
 
 ## 44. Offline message queue — pending sends retry automatically
 
-- Problem: a message sent while the network is silently dead (wifi toggled,
-  no TCP FIN/RST) was lost outright. socket.readyState stays OPEN, so
-  wsClient.send() returned true, the composer cleared the input, and the
-  frame went into a black hole. The server never saw it; nothing reported
-  the failure
-- Backend: added client_message_id to the RETURNING clause on the INSERT
-  (ws/index.js:156) and to the 23505 fallback SELECT (:163). Without it the
-  echo carried no key and the client could not match a reply to the message
-  it was waiting on. Both are additive — existing echo assertions unaffected
-- Frontend: added a pending queue in App.jsx. sendMessage() now generates the
-  client_message_id once at enqueue time and pushes the entry; onMessage
-  resolves it by matching payload.client_message_id before the existing dedup
-  Set runs. Pending and confirmed rows never overlap: pending has no id, so it
-  never enters messageIdsRef
-- Composer: removed the socket-state gate from canSend so a message can be
-  sent while offline — it queues rather than being refused. The UUID moved out
-  of the composer so retries reuse the same key, which is what makes the
-  backend's 23505 path return the original row instead of inserting a
-  duplicate
-- Conversation: renders pending bubbles after confirmed ones, keyed by
-  client_message_id (pending rows have no id yet), showing "sending…"
-- Flush trigger, attempt 1: an effect keyed on socketState.status === 'open'.
-  This did NOT work. It only fires when the status value changes, but a silent
-  network drop produces no 'close' event, so the status never leaves 'open' and
-  the effect never re-runs. Verified manually: wifi off → send → wifi on →
-  message stuck on "sending…" indefinitely
-- Flush trigger, attempt 2: a window 'online' listener in wsClient.js that
-  force-reconnects. Also did NOT work in the browser. Chrome does not reliably
-  fire 'online' when an OS wifi interface is toggled via quick settings — the
-  transition has to register as a real offline state first. The earlier fix was
-  built on a signal that never fired, which was the mistake worth recording
-- Flush trigger, final: dropped the reliance on browser events entirely. While
-  pending is non-empty, a setInterval in App.jsx resends every unresolved entry
-  every 5s. Keyed on pending.length, so the timer starts when the queue becomes
-  non-empty and clears the moment an echo empties it — no timer runs in the
-  normal case. The 'online' listener is kept alongside it since it costs
-  nothing and, when it does fire, retries sooner
-- Verified manually: two messages queued while offline both delivered within
-  5s of the network returning, with no duplicates and no user action
-- Backend untouched this step beyond the two RETURNING/SELECT columns —
-  7 suites / 41 tests green. Frontend oxlint clean, vite build passes
-- Known gaps, all documented in README and SCOPE: pending lives in React
-  state so a page reload during an outage loses it; there is no attempt cap;
-  there is no 'failed' state, so a message that can never be delivered retries
-  forever showing "sending…"
-- Open issue: two messages queued offline were observed arriving in reverse
-  order (hi2 before hi1). Cause not yet identified — either the echo
-  ordering in the poller or the .reverse() in App.jsx's history load.
-  Not fixed
+- Problem: a send into a silently dead network (wifi toggled, no TCP FIN/RST)
+  was lost outright — `readyState` stays `OPEN`, so `send()` returned `true`,
+  the input cleared, and the frame vanished with no failure reported
+- Backend: added `client_message_id` to the INSERT's `RETURNING` and to the
+  `23505` fallback `SELECT`, so the echo carries the key the client matches on
+- Frontend: `sendMessage()` generates the UUID once at enqueue time; `onMessage`
+  resolves the entry by `client_message_id` before the dedup Set runs. Pending
+  rows have no `id`, so they never enter `messageIdsRef`. Composer no longer
+  gates on socket state — offline sends queue
+- **Two flush triggers failed in the browser before polling worked:** an effect
+  keyed on `socketState.status === 'open'` (a silent drop never changes the
+  status, so it never re-ran) and a `window 'online'` listener (Chrome does not
+  reliably fire `online` when an OS wifi interface is toggled). Final: a 5s
+  `setInterval` resends unresolved entries, keyed on `pending.length` so it
+  starts and stops with the queue. The `online` listener is kept as a bonus
+- Verified manually: two messages queued offline both delivered within 5s of the
+  network returning, no duplicates, no user action. 7 suites / 41 tests green
+- Gaps (in README + SCOPE): pending lives in React state so a reload during an
+  outage loses it; no attempt cap; no `failed` state, so an undeliverable
+  message retries forever showing "sending…"
+- Open issue: two queued messages arrived reversed (hi2 before hi1). Traced to
+  the backend — `ws.on("message")` is async and unserialized, so two frames in
+  one tick can INSERT in either order and `hi2` can get the lower `id`, which
+  `App.jsx`'s `.reverse()` then amplifies. Fix is a promise chain in
+  `ws/index.js`. Not fixed
