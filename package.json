@@ -1,0 +1,12 @@
+{
+  "name": "messaging-app",
+  "version": "1.0.0",
+  "private": true,
+  "description": "1:1 real-time messaging app — root task runner for the three test suites",
+  "scripts": {
+    "test:backend": "npm --prefix backend test",
+    "test:frontend": "npm --prefix frontend test",
+    "test:e2e": "npm --prefix e2e test",
+    "test": "npm run test:backend && npm run test:frontend && npm run test:e2e"
+  }
+}
