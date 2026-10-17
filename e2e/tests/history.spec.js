@@ -27,6 +27,10 @@ async function signInAs(browser, user) {
 }
 
 test('history persists across logout and fresh login', async ({ browser }) => {
+  // Three sequential sign-in/session cycles plus live round trips run close to
+  // the default 30s budget; give this spec headroom on slower machines.
+  test.setTimeout(60_000)
+
   const userA = createUniqueUser()
   const userB = createUniqueUser()
 
