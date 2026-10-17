@@ -33,8 +33,25 @@ async function expectVisible(locator) {
 }
 
 /**
+ * Logs in an EXISTING account through the UI. Used when a user already
+ * registered — e.g. re-signing after a logout — where registerAndLogin would
+ * fail with a duplicate-username error.
+ */
+async function loginOnly(page, user) {
+  await page.goto('/')
+  await expectVisible(page.getByRole('heading', { name: 'Log in' }))
+
+  await fillCredentials(page, user)
+  await submitAuthForm(page)
+
+  await expectVisible(page.getByRole('heading', { name: `Signed in as ${user.username}` }))
+  await waitForSocketConnected(page)
+  return user
+}
+
+/**
  * Registers a brand new account through the UI, then logs in with the same
- * credentials. Returns once the signed-in shell is visible.
+ * credentials. Returns once the signed-in shell is visible and connected.
  */
 async function registerAndLogin(page, user) {
   await page.goto('/')
@@ -148,6 +165,7 @@ async function expectMessageOnce(page, text) {
 
 module.exports = {
   registerAndLogin,
+  loginOnly,
   logoutViaRoute,
   switchToRegister,
   fillCredentials,
