@@ -4,6 +4,11 @@ import { defineConfig } from 'vite'
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
+  test: {
+    environment: 'jsdom',
+    globals: true,
+    include: ['src/**/*.test.{js,jsx}'],
+  },
   server: {
     watch: {
       // The project lives on /mnt/c, a 9p (drvfs) mount, which delivers no
