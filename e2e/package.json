@@ -6,7 +6,7 @@
     "test": "tests"
   },
   "scripts": {
-    "test": "playwright test"
+    "test": "cross-env NODE_ENV=test playwright test"
   },
   "type": "commonjs",
   "devDependencies": {

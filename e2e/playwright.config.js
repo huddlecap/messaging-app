@@ -16,6 +16,9 @@ module.exports = defineConfig({
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
+  // Strip leftovers from a previous crashed run, then clean up after this one.
+  globalSetup: require.resolve('./global-setup.js'),
+  globalTeardown: require.resolve('./global-teardown.js'),
   webServer: [
     {
       // NODE_ENV=test makes db.js load .env.test instead of .env, so the suite
