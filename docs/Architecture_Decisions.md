@@ -103,3 +103,46 @@ timer is `unref`'d and cleared on close so it can't hold the process open. A
 consequence of closing gracefully instead of terminating: the heartbeat now
 skips sockets that aren't OPEN, because `ping()` throws on a CLOSING socket
 and an exception inside `setInterval` would take the process down.
+
+## One API module and one 401 hook
+
+Every HTTP call from the frontend goes through a single wrapper in `api.js`,
+which attaches credentials, parses JSON leniently, and throws `ApiError` using
+the backend's own error message so the UI can display it verbatim. A module-level
+slot (`setUnauthorizedHandler`) fires on any 401, so an expired session has one
+reaction instead of one per component. Sending is deliberately WebSocket-only;
+there is no HTTP send endpoint to keep in sync.
+
+## App-generated `client_message_id` as the idempotency key
+
+The client generates a UUID once at enqueue time and reuses it across retries,
+and the backend treats the unique index on that column as the dedup point: a
+`23505` returns the original row instead of an error. This makes a send safe to
+repeat, which the offline queue and any reconnect replay depend on. Generating
+the id server-side would not help, because the client needs a stable key before
+the first attempt ever reaches the server.
+
+## Offline queue flushes on a timer, not on events
+
+Two event-driven triggers were tried and failed: an effect keyed on the socket
+status (a silently dead network never changes it, so `send()` still returns
+`true`) and a browser `online` listener (Chrome skips it on wifi toggles). A 5 s
+interval keyed on `pending.length` is the only trigger that survives a silent
+drop, and it starts and stops with the queue rather than running forever.
+
+## Vitest config lives in `vite.config.js`
+
+A `test` block in the existing Vite config keeps one source of truth instead of
+adding a second config file, and keeps the frontend on Vitest rather than
+running Jest alongside Vite. The `jsdom` environment is required, not a
+preference: `wsClient.js` reads `location.protocol` and throws under the default
+`node` environment.
+
+## E2E specs run serially against one shared test DB
+
+All Playwright specs point at the same remote test database, so they cannot run
+in parallel: `workers: 1` and `fullyParallel: false`, with the Jest suite and
+root `npm test` chaining the three suites so two can never overlap. The
+`webServer` block forces `NODE_ENV=test` so `db.js` loads `.env.test`, and
+`reuseExistingServer: false` makes a run fail rather than attach to a dev server
+holding the production database.

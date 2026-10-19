@@ -442,28 +442,66 @@
 
 ## 44. Offline message queue — pending sends retry automatically
 
-- Problem: a send into a silently dead network (wifi toggled, no TCP FIN/RST)
-  was lost outright — `readyState` stays `OPEN`, so `send()` returned `true`,
-  the input cleared, and the frame vanished with no failure reported
+- Problem: a send into a silently dead network was lost outright — `readyState`
+  stays `OPEN`, so `send()` returned `true`, the input cleared, and the frame
+  vanished with no failure reported
 - Backend: added `client_message_id` to the INSERT's `RETURNING` and to the
   `23505` fallback `SELECT`, so the echo carries the key the client matches on
-- Frontend: `sendMessage()` generates the UUID once at enqueue time; `onMessage`
-  resolves the entry by `client_message_id` before the dedup Set runs. Pending
-  rows have no `id`, so they never enter `messageIdsRef`. Composer no longer
-  gates on socket state — offline sends queue
-- **Two flush triggers failed in the browser before polling worked:** an effect
-  keyed on `socketState.status === 'open'` (a silent drop never changes the
-  status, so it never re-ran) and a `window 'online'` listener (Chrome does not
-  reliably fire `online` when an OS wifi interface is toggled). Final: a 5s
-  `setInterval` resends unresolved entries, keyed on `pending.length` so it
-  starts and stops with the queue. The `online` listener is kept as a bonus
-- Verified manually: two messages queued offline both delivered within 5s of the
-  network returning, no duplicates, no user action. 7 suites / 41 tests green
-- Gaps (in README + SCOPE): pending lives in React state so a reload during an
-  outage loses it; no attempt cap; no `failed` state, so an undeliverable
-  message retries forever showing "sending…"
-- Open issue: two queued messages arrived reversed (hi2 before hi1). Traced to
-  the backend — `ws.on("message")` is async and unserialized, so two frames in
-  one tick can INSERT in either order and `hi2` can get the lower `id`, which
-  `App.jsx`'s `.reverse()` then amplifies. Fix is a promise chain in
-  `ws/index.js`. Not fixed
+- Frontend: `sendMessage()` generates the UUID once at enqueue time and
+  `onMessage` resolves the entry by it before the dedup Set runs. Pending rows
+  have no `id`, so they never enter `messageIdsRef`
+- Two flush triggers failed in-browser first: an effect keyed on
+  `socketState.status === 'open'` (a silent drop never changes the status) and a
+  `window 'online'` listener (Chrome skips it on wifi toggles). Final answer is a
+  5s `setInterval` keyed on `pending.length`, so it starts and stops with the
+  queue
+- Verified manually: two messages queued offline both delivered within 5s of
+  the network returning, no duplicates, no user action
+- Gaps (README + SCOPE): pending lives in React state so a reload loses it; no
+  attempt cap; no `failed` state
+
+## 45. Message ordering bug found (not fixed)
+
+- Two queued messages arrived reversed (hi2 before hi1)
+- Cause is the backend, not the poller: `ws.on("message")` is async and
+  unserialized, so two frames in one tick can INSERT in either order and `hi2`
+  can get the lower `id`, which `App.jsx`'s `.reverse()` then amplifies
+- Fix is a promise chain serializing the handler in `ws/index.js`
+
+## 46. Phase 3 step 1 — Vitest + jsdom setup
+
+- Installed Vitest 5.0.5 + jsdom 30.1.3, added `"test": "vitest run"`. Config
+  goes in `vite.config.js` under a `test` block so there is one source of truth
+- `environment: 'jsdom'` is required — `wsClient.js` reads `location.protocol`
+  and would throw under the default `node` environment
+- Vite stayed at 8.3.2, deduped across all three consumers, no version shift
+- Placeholder test proves the setup runs; `npm test`, `npm run build` and
+  `npm run lint` all pass
+
+## 47. Phase 3 step 2 — wsClient.js tests
+
+- 16 tests over a fake WebSocket. `close()` records the call but does not emit,
+  so tests call `emitClose()` and control exactly when the event lands
+- Verified by sabotage: breaking the backoff cap, the 4001 branch, the backoff
+  reset, the session-check guard, `clearRetry`, and `closedIntentionally` each
+  fail at least one test
+- Found while sabotage-testing: `closedIntentionally` is effectively dead code
+  at `wsClient.js:47`. `close()` nulls `socket` and removes the `online`
+  listener first, so the `socket !== ws` guard at `:44` short-circuits before
+  the flag is read. Left as is — defence in depth
+
+## 48. Phase 3 step 3 — Playwright setup
+
+- `e2e/` with its own package.json, Playwright 1.64.1, Chromium only
+- `webServer` starts the backend with `NODE_ENV=test` so `db.js` loads
+  `.env.test`, plus Vite on `:5173`. Both use `reuseExistingServer: false` so a
+  run can never attach to a dev server holding the dev database
+- `workers: 1`, `fullyParallel: false` — all specs share one test DB
+- Verified the test DB is really used: loaded the pool under `NODE_ENV=test`
+  and printed only the hostname. dotenv reported `.env.test` and the host was
+  `ep-polished-leaf-…`, distinct from the dev DB's `ep-noisy-voice-…`
+- Blocker: Chromium cannot launch on WSL, missing `libnspr4.so`. The browser
+  binary is installed, the system libraries are not. Run
+  `sudo npx playwright install-deps chromium` before the smoke test can pass
+- Note: an e2e run needs `:3000` and `:5173` free, since
+  `reuseExistingServer: false` fails on purpose rather than attaching
