@@ -67,23 +67,66 @@ tests plus one end-to-end flow across both apps.
 
 - [x] Frontend: install Vitest + jsdom, add `test` script
 - [x] Frontend: `wsClient.js` tests (exponential backoff reconnect, `4001 replaced` handling, session check before open, no reconnect on intentional close)
-- [x] E2E: install Playwright; `webServer` config starts the backend (`NODE_ENV=test`, test DB) and Vite (`:5173`). Browser launch is blocked until `sudo npx playwright install-deps chromium` is run (missing `libnspr4.so` on WSL)
-- [ ] E2E: unique test users per run + global teardown that deletes them
-- [ ] E2E: happy path with two browser contexts (register, login, live send/receive, history, logout via the logout route)
-- [ ] Root-level single command that runs Jest, then Vitest, then Playwright in sequence (they share the test DB) with no manual steps
-- [ ] Backend suite still green (7 suites / 41 tests)
-- [ ] Sanity check: for each new test, temporarily break the code it covers and confirm the test fails
-- [ ] Stretch (only if time allows): offline pending-queue tests
+- [x] E2E: install Playwright; `webServer` config starts the backend (`NODE_ENV=test`, test DB) and Vite (`:5173`)
+- [x] E2E: unique test users per run + global teardown that deletes them
+- [x] E2E: happy path with two browser contexts (register, login, live
+      send/receive, history, logout via the logout route)
+- [x] Root-level single command that runs Jest, then Vitest, then Playwright
+      in sequence (they share the test DB) with no manual steps
+- [x] Backend suite still green (7 suites / 41 tests)
+- [x] Sanity check: for each new test, temporarily break the code it
+      covers and confirm the test fails
 
 Done when: core flows are covered by a test suite that runs without manual
 steps.
 
-Deferred: API client tests, component tests, replaced-tab and reconnect E2E flows, logout button.
+Deferred: API client tests, component tests, replaced-tab and reconnect E2E
+flows, logout button.
 
 ### Phase 4 — Git Workflow + CI/CD
 
 Proper feature-branch workflow, PRs, and a CI/CD pipeline that runs tests
 automatically and deploys on merge.
+
+**Prep**
+
+- [ ] Add .gitattributes and renormalize line endings (own commit)
+
+**Git workflow**
+
+- [ ] Practice the feature branch → push → PR → merge loop on a small change
+- [ ] Set branch protection on main (require CI to pass, no direct pushes)
+
+**CI**
+
+- [ ] Add test DB secret to GitHub and create backend/.env.test in the workflow
+- [ ] Workflow: backend install + Jest
+- [ ] Add frontend install + Vitest
+- [ ] Add Playwright (browser install + cache)
+- [ ] Resolve the e2e cleanup guard for CI
+- [ ] Switch to single root `npm test`
+- [ ] Add dependency caching
+- [ ] Add concurrency limit (one run at a time on the test DB)
+- [ ] Check imports for Linux filename-casing issues
+
+**Deploy decisions**
+
+- [ ] Choose backend host (long-lived WebSockets)
+- [ ] Choose frontend host
+- [ ] Create production Neon branch
+- [ ] Set production env vars and secrets
+- [ ] Review cookie settings (secure, sameSite) for HTTPS
+- [ ] Decide how the frontend reaches /api and /ws in production
+
+**CD**
+
+- [ ] Add deploy-on-merge job (runs on main only after tests pass)
+
+**Prove the loop**
+
+- [ ] Push a small change through branch → PR → CI → merge → auto deploy
+- [ ] Confirm the live site updated
+
 Done when: pushing to main triggers tests and deployment automatically, no
 manual deploy steps.
 
