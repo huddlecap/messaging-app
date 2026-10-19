@@ -90,6 +90,8 @@ automatically and deploys on merge.
 
 **Prep**
 
+- [x] Commit docs/Architecture_Decisions.md and docs/BuildLog.md
+- [x] Update docs/SCOPE.md (tick Phase 3, remove duplicate heading and stray text, add deferred notes)
 - [ ] Add .gitattributes and renormalize line endings (own commit)
 
 **Git workflow**
