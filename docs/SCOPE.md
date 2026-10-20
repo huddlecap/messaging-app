@@ -96,8 +96,8 @@ automatically and deploys on merge.
 
 **Git workflow**
 
-- [ ] Practice the feature branch → push → PR → merge loop on a small change
-- [ ] Set branch protection on main (require CI to pass, no direct pushes)
+- [x] Practice the feature branch → push → PR → merge loop on a small change
+- [x] Set branch protection on main (require CI to pass, no direct pushes) (CI part deferred until CI exists)
 
 **CI**
 
