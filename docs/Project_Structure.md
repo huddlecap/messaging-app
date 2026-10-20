@@ -99,3 +99,4 @@ messaging-app/
 - `docs/Progress.md` tracks project progress
 - `docs/BuildLog.md` contains build logs
 - `docs/Architecture_Decisions.md` / `docs/SCOPE.md` — decisions and scope
+practice PR loop
