@@ -97,19 +97,25 @@ automatically and deploys on merge.
 **Git workflow**
 
 - [x] Practice the feature branch → push → PR → merge loop on a small change
-- [x] Set branch protection on main (require CI to pass, no direct pushes) (CI part deferred until CI exists)
+- [x] Set branch protection on main (no direct pushes) (the require-CI rule is in Leftovers below)
 
 **CI**
 
-- [ ] Add test DB secret to GitHub and create backend/.env.test in the workflow
-- [ ] Workflow: backend install + Jest
-- [ ] Add frontend install + Vitest
-- [ ] Add Playwright (browser install + cache)
-- [ ] Resolve the e2e cleanup guard for CI
-- [ ] Switch to single root `npm test`
-- [ ] Add dependency caching
-- [ ] Add concurrency limit (one run at a time on the test DB)
-- [ ] Check imports for Linux filename-casing issues
+- [x] Add test DB secret to GitHub and create backend/.env.test in the workflow
+- [x] Workflow: backend install + Jest
+- [x] Add frontend install + Vitest
+- [x] Add Playwright (browser install + cache) (npm packages cached; Chromium download not cached)
+- [x] Resolve the e2e cleanup guard for CI
+- [x] Fix auth-flow spec to create its own second user (empty test DB) (added item)
+- [x] Switch to single root `npm test` (decided against: separate jobs are faster and clearer; root command kept for local use)
+- [x] Add dependency caching
+- [x] Add concurrency limit (one run at a time on the test DB)
+- [x] Check imports for Linux filename-casing issues (covered by the frontend build step in CI)
+
+**Leftovers (do these before Deploy decisions)**
+
+- [x] Switch on "Require status checks to pass before merging" for backend, frontend and e2e
+- [x] Confirm the npm cache is restored on a re-run (install step time drops)
 
 **Deploy decisions**
 
@@ -128,6 +134,10 @@ automatically and deploys on merge.
 
 - [ ] Push a small change through branch → PR → CI → merge → auto deploy
 - [ ] Confirm the live site updated
+
+**Wrap-up**
+
+- [ ] Rotate the Neon database password and update backend/.env, backend/.env.test and the GitHub secret TEST_DATABASE_URL
 
 Done when: pushing to main triggers tests and deployment automatically, no
 manual deploy steps.
