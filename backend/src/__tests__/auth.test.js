@@ -83,6 +83,47 @@ describe("Auth routes", () => {
     });
   });
 
+  describe("cookie secure flag", () => {
+    test("COOKIE_SECURE controls the Secure attribute on the session cookie", async () => {
+      const original = process.env.COOKIE_SECURE;
+      const createdSessionIds = [];
+      try {
+        delete process.env.COOKIE_SECURE;
+        const insecureRes = await request(app)
+          .post("/api/auth/login")
+          .send({ username, password });
+        expect(insecureRes.status).toBe(200);
+        const insecureCookie = insecureRes.headers["set-cookie"].find((c) =>
+          c.startsWith("session_id=")
+        );
+        expect(insecureCookie).toBeDefined();
+        expect(insecureCookie).not.toContain("Secure");
+        createdSessionIds.push(insecureCookie.split(";")[0].split("=")[1]);
+
+        process.env.COOKIE_SECURE = "true";
+        const secureRes = await request(app)
+          .post("/api/auth/login")
+          .send({ username, password });
+        expect(secureRes.status).toBe(200);
+        const secureCookie = secureRes.headers["set-cookie"].find((c) =>
+          c.startsWith("session_id=")
+        );
+        expect(secureCookie).toBeDefined();
+        expect(secureCookie).toContain("Secure");
+        createdSessionIds.push(secureCookie.split(";")[0].split("=")[1]);
+      } finally {
+        if (original === undefined) {
+          delete process.env.COOKIE_SECURE;
+        } else {
+          process.env.COOKIE_SECURE = original;
+        }
+        for (const id of createdSessionIds) {
+          await pool.query("DELETE FROM sessions WHERE id = $1", [id]);
+        }
+      }
+    });
+  });
+
   describe("GET /api/auth/me", () => {
     test("with valid session returns 200 and user", async () => {
       const res = await request(app)

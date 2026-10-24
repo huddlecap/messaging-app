@@ -7,6 +7,12 @@ const { loginLimiter, registerLimiter } = require("../middleware/rateLimiters");
 
 const router = express.Router();
 
+const cookieOptions = () => ({
+  httpOnly: true,
+  secure: process.env.COOKIE_SECURE === "true",
+  sameSite: "strict",
+});
+
 router.post("/register", registerLimiter, async (req, res) => {
   const result = validateRegister(req.body);
   if (!result.ok) {
@@ -64,12 +70,7 @@ router.post("/login", loginLimiter, async (req, res) => {
       [sessionId, user.id, expiresAt]
     );
 
-    res.cookie("session_id", sessionId, {
-      httpOnly: true,
-      secure: false, // set true once you're on HTTPS (production)
-      sameSite: "strict",
-      expires: expiresAt,
-    });
+    res.cookie("session_id", sessionId, { ...cookieOptions(), expires: expiresAt });
 
     res.json({ id: user.id, username: user.username });
   } catch (err) {
@@ -86,7 +87,7 @@ router.post("/logout", async (req, res) => {
       await pool.query("DELETE FROM sessions WHERE id = $1", [sessionId]);
     }
 
-    res.clearCookie("session_id");
+    res.clearCookie("session_id", cookieOptions());
     res.json({ message: "Logged out" });
   } catch (err) {
     console.error("Logout error:", err);
