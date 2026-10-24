@@ -25,7 +25,7 @@ module.exports = defineConfig({
       // can never touch the dev/production database.
       command: 'npx cross-env NODE_ENV=test node src/index.js',
       cwd: path.join(repoRoot, 'backend'),
-      url: 'http://localhost:3000/',
+      url: 'http://localhost:3000/api/health',
       reuseExistingServer: false,
       timeout: 60_000,
     },

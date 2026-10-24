@@ -30,6 +30,10 @@ app.get("/api/auth/me", requireAuth, (req, res) => {
   res.json({ user: req.user });
 });
 
+app.get("/api/health", (req, res) => {
+  res.json({ ok: true });
+});
+
 // Serve the built frontend when it exists. Mounted after every /api route so an
 // unknown /api path still returns the JSON 404, and /ws is never answered with
 // HTML (the WebSocket upgrade is handled in index.js).
