@@ -5,6 +5,11 @@ on:
     branches: [main]
   pull_request:
 
+# All jobs share one Neon test DB, so only one workflow run at a time.
+concurrency:
+  group: test-database
+  cancel-in-progress: false
+
 jobs:
   backend:
     runs-on: ubuntu-latest
