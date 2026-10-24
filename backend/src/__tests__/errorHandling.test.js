@@ -7,6 +7,12 @@ const app = require("../app");
 // so it's intentionally not tested here rather than fabricated.
 
 describe("Error handling", () => {
+  test("GET /api/health returns 200 with ok: true", async () => {
+    const res = await request(app).get("/api/health");
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ ok: true });
+  });
+
   test("unknown route returns 404 with error message", async () => {
     const res = await request(app).get("/api/does-not-exist");
     expect(res.status).toBe(404);
