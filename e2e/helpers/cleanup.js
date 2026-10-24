@@ -76,10 +76,16 @@ const DEV_HOST = envHost(BACKEND_ENV)
  *   3. the pool's host differs from the .env (dev) host
  *   4. .env and .env.test are not accidentally the same host
  *
+ * Checks 3 and 4 are skipped when CI === "true": a CI runner has no dev
+ * database, and may inject the same DATABASE_URL into both files, which would
+ * otherwise refuse a run that is provably pointing at the test host. Check 2
+ * still applies in every case.
+ *
  * Only hostnames appear in thrown messages — never a full connection string.
  */
 function assertSafeToClean() {
   const poolHost = hostOf(pool.options && pool.options.connectionString)
+  const isCi = process.env.CI === 'true'
 
   if (!TEST_HOST) {
     throw new Error(
@@ -97,13 +103,13 @@ function assertSafeToClean() {
     )
   }
 
-  if (DEV_HOST && poolHost === DEV_HOST) {
+  if (!isCi && DEV_HOST && poolHost === DEV_HOST) {
     throw new Error(
       `Refusing to clean: pool host "${poolHost}" is the DEV database`,
     )
   }
 
-  if (DEV_HOST && TEST_HOST === DEV_HOST) {
+  if (!isCi && DEV_HOST && TEST_HOST === DEV_HOST) {
     throw new Error(
       'Refusing to clean: .env.test and .env point at the same host',
     )
