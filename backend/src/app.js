@@ -3,6 +3,11 @@ const morgan = require("morgan");
 const fs = require("fs");
 const path = require("path");
 const app = express();
+
+const trustProxy = Number(process.env.TRUST_PROXY);
+if (Number.isInteger(trustProxy) && trustProxy > 0) {
+  app.set("trust proxy", trustProxy);
+}
 const authRoutes = require("./routes/authRoutes");
 const userRoutes = require("./routes/userRoutes");
 const cookieParser = require("cookie-parser");
