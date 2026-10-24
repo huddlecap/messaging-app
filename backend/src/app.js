@@ -3,7 +3,6 @@ const morgan = require("morgan");
 const fs = require("fs");
 const path = require("path");
 const app = express();
-const pool = require("./db/db");
 const authRoutes = require("./routes/authRoutes");
 const userRoutes = require("./routes/userRoutes");
 const cookieParser = require("cookie-parser");
@@ -16,15 +15,6 @@ app.use(express.json());
 app.use("/api/auth", authRoutes);
 app.use("/api/messages", requireAuth, messageRoutes);
 app.use("/api/users", requireAuth, userRoutes);
-
-app.get("/test-db", async (req, res) => {
-  try {
-    const result = await pool.query("SELECT NOW()");
-    res.json({ success: true, time: result.rows[0] });
-  } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
 
 app.get("/api/auth/me", requireAuth, (req, res) => {
   res.json({ user: req.user });
