@@ -36,3 +36,41 @@ jobs:
       - name: Run frontend tests
         run: npm test
         working-directory: frontend
+
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Install backend dependencies
+        run: npm ci
+        working-directory: backend
+      - name: Install frontend dependencies
+        run: npm ci
+        working-directory: frontend
+      - name: Install e2e dependencies
+        run: npm ci
+        working-directory: e2e
+      - name: Write test database credentials
+        run: echo "DATABASE_URL=${{ secrets.TEST_DATABASE_URL }}" > .env.test
+        working-directory: backend
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+        working-directory: e2e
+      - name: Run e2e tests
+        run: npm test
+        working-directory: e2e
+      - name: Upload Playwright artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-artifacts
+          path: |
+            e2e/playwright-report
+            e2e/test-results
+          retention-days: 7
+          if-no-files-found: ignore
