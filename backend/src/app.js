@@ -1,5 +1,7 @@
 const express = require("express");
 const morgan = require("morgan");
+const fs = require("fs");
+const path = require("path");
 const app = express();
 const pool = require("./db/db");
 const authRoutes = require("./routes/authRoutes");
@@ -15,10 +17,6 @@ app.use("/api/auth", authRoutes);
 app.use("/api/messages", requireAuth, messageRoutes);
 app.use("/api/users", requireAuth, userRoutes);
 
-app.get("/", (req, res) => {
-  res.send("Server is running");
-});
-
 app.get("/test-db", async (req, res) => {
   try {
     const result = await pool.query("SELECT NOW()");
@@ -31,6 +29,20 @@ app.get("/test-db", async (req, res) => {
 app.get("/api/auth/me", requireAuth, (req, res) => {
   res.json({ user: req.user });
 });
+
+// Serve the built frontend when it exists. Mounted after every /api route so an
+// unknown /api path still returns the JSON 404, and /ws is never answered with
+// HTML (the WebSocket upgrade is handled in index.js).
+const distDir = path.join(__dirname, "..", "..", "frontend", "dist");
+const indexFile = path.join(distDir, "index.html");
+
+if (fs.existsSync(indexFile)) {
+  app.use(express.static(distDir));
+
+  app.get(/^\/(?!api(\/|$)|ws(\/|$))/, (req, res) => {
+    res.sendFile(indexFile);
+  });
+}
 
 app.use((req, res) => {
   res.status(404).json({ error: "Not found" });
