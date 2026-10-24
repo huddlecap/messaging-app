@@ -6,7 +6,14 @@ const { registerAndLogin, logoutViaRoute } = require('../helpers/ui')
 // -> assert the auth screen returns and the session is genuinely gone.
 //
 // Cleanup of the generated user is handled by global-teardown.
-test('registers, logs in, and logs out via the logout route', async ({ page }) => {
+test('registers, logs in, and logs out via the logout route', async ({ page, request }) => {
+  // UserPicker only renders its heading when another account exists, so seed
+  // one via the API first. Same e2e_ prefix, so the global cleanup removes it.
+  // Register creates no session, so it cannot affect the flow below.
+  const other = createUniqueUser()
+  const seeded = await request.post('/api/auth/register', { data: other })
+  expect(seeded.status()).toBe(201)
+
   const user = createUniqueUser()
 
   await registerAndLogin(page, user)
