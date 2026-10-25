@@ -119,25 +119,25 @@ automatically and deploys on merge.
 
 **Deploy decisions**
 
-- [ ] Choose backend host (long-lived WebSockets)
-- [ ] Choose frontend host
-- [ ] Create production Neon branch
-- [ ] Set production env vars and secrets
-- [ ] Review cookie settings (secure, sameSite) for HTTPS
-- [ ] Decide how the frontend reaches /api and /ws in production
+- [x] Choose backend host (long-lived WebSockets)
+- [x] Choose frontend host
+- [x] Create production Neon branch
+- [x] Set production env vars and secrets
+- [x] Review cookie settings (secure, sameSite) for HTTPS
+- [x] Decide how the frontend reaches /api and /ws in production
 
 **CD**
 
-- [ ] Add deploy-on-merge job (runs on main only after tests pass)
+- [x] Add deploy-on-merge job (runs on main only after tests pass)
 
 **Prove the loop**
 
-- [ ] Push a small change through branch → PR → CI → merge → auto deploy
-- [ ] Confirm the live site updated
+- [x] Push a small change through branch → PR → CI → merge → auto deploy
+- [x] Confirm the live site updated
 
 **Wrap-up**
 
-- [ ] Rotate the Neon database password and update backend/.env, backend/.env.test and the GitHub secret TEST_DATABASE_URL
+- [ ] Rotate the Neon database password and update backend/.env, backend/.env.test, the GitHub secret TEST_DATABASE_URL, and Render's DATABASE_URL
 
 Done when: pushing to main triggers tests and deployment automatically, no
 manual deploy steps.

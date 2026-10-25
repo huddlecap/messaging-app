@@ -115,8 +115,7 @@ Frontend (run from `frontend/`):
   not SERIAL.
 - Never touch the production DB from tests/scripts — `NODE_ENV=test` or
   explicit `.env.test` only.
-- Session cookie is `secure: false` (no HTTPS yet) — intentional, documented
-   in `docs/Progress.md`.
+- Session cookie is httpOnly, sameSite strict; `Secure` flag on only when env `COOKIE_SECURE` is `true` (unset means off). Express `trust proxy` set only when env `TRUST_PROXY` is a positive integer; production uses `1`. Documented in `docs/Progress.md`.
 
 ## Repo docs (keep in sync on structural/behavioral changes)
 - `docs/Project_Structure.md` — file tree + key files · `docs/Progress.md` — stack,
