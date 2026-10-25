@@ -146,3 +146,17 @@ root `npm test` chaining the three suites so two can never overlap. The
 `webServer` block forces `NODE_ENV=test` so `db.js` loads `.env.test`, and
 `reuseExistingServer: false` makes a run fail rather than attach to a dev server
 holding the production database.
+
+## Phase 4 deployment decisions
+
+**Host:** Render free web service in Singapore; one service serves everything same-origin. Build installs backend and frontend deps, then builds the frontend. Start: `node backend/src/index.js`. Health check path `/api/health`. Auto-Deploy set to "After CI Checks Pass". Free tier spins down after 15 minutes idle (~30s cold start) and can restart at any time, which drops WebSockets; the client has reconnect logic and an offline queue.
+
+**Neon branches:** project `messaging-app`, region AWS Singapore. `production` (actually the DEV database despite the name), `test` (schema-only copy used by tests and CI), `live` (the real production database, schema-only copy). The old `test` DB host `ep-polished-leaf` no longer exists; refer to the `test` branch instead.
+
+**Serving:** backend serves `frontend/dist` as static files when it exists, with an `index.html` fallback for any path not starting with `/api` or `/ws`. `GET /` and `GET /test-db` no longer exist.
+
+**Cookie and proxy:** session cookie is httpOnly, sameSite strict; `Secure` flag on only when env `COOKIE_SECURE` is `true` (unset means off). Express `trust proxy` set only when env `TRUST_PROXY` is a positive integer; production uses `1`. Production env vars on Render: `DATABASE_URL` (live branch), `COOKIE_SECURE=true`, `TRUST_PROXY=1`; `PORT` supplied by Render.
+
+**Rate limiting:** limiters key on client IP; verified per-client by testing from two different networks.
+
+**Logging:** no request logging configured (`morgan` imported but not used), so client IPs cannot be audited from logs.

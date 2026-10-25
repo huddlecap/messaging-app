@@ -35,9 +35,10 @@
   - `--runInBand` runs suites sequentially — they share one real test database.
 - `"dev": "nodemon src/index.js"` — nodemon **3.1.14 is installed as a devDependency** (local `node_modules/.bin` wins inside npm scripts; a bare `nodemon` in a shell still resolves to whatever global install is on `PATH`).
 
-**Database:** PostgreSQL on Neon, two connection strings:
-- `backend/.env` → production/dev branch (`ep-noisy-voice-…`)
-- `backend/.env.test` → test branch (`ep-polished-leaf-…`), selected when `NODE_ENV=test`
+**Database:** PostgreSQL on Neon, project `messaging-app`, region AWS Singapore, three branches:
+- `backend/.env` → `production` branch (the DEV database despite the name)
+- `backend/.env.test` → `test` branch (schema-only copy used by tests and CI), selected when `NODE_ENV=test`
+- `live` branch is the real production database (schema-only copy), used by Render's `DATABASE_URL`
 - SSL is set to `rejectUnauthorized: false`.
 
 **Frontend (Phase 2):** React 19 + Vite 8 in `frontend/` — dev server on `:5173` proxying `/api` and `/ws` to the backend on `:3000` (same-origin, so no CORS and the session cookie works unchanged). No frontend tests yet (Phase 3).
@@ -92,7 +93,7 @@ All routes are mounted in `src/app.js` (the Express app; `src/index.js` only sta
 | Method | Path | Description |
 |--------|------|-------------|
 | `POST` | `/api/auth/register` | Creates a new user (bcrypt hash, salt rounds 10). `400` invalid input (username 3–50 chars, password 8–72 chars via `validation.js`), `409` duplicate username (`23505`), `201` with `{id, username, created_at}`. Behind `registerLimiter` (5/hour). |
-| `POST` | `/api/auth/login` | Authenticates, creates a session (`crypto.randomUUID()`, expires in 7 days), sets `session_id` cookie (httpOnly, sameSite strict, `secure: false`). `401` invalid credentials. Behind `loginLimiter` (10/15min, `skipSuccessfulRequests`). |
+| `POST` | `/api/auth/login` | Authenticates, creates a session (`crypto.randomUUID()`, expires in 7 days), sets `session_id` cookie (httpOnly, sameSite strict; `Secure` only when env `COOKIE_SECURE` is `true`). `401` invalid credentials. Behind `loginLimiter` (10/15min, `skipSuccessfulRequests`). |
 | `POST` | `/api/auth/logout` | Deletes the session row, clears the cookie. Always `{ message: "Logged out" }`. |
 
 ### Routes in `messageRoutes.js` (mounted at `/api/messages`, protected by `requireAuth`):
@@ -111,8 +112,7 @@ All routes are mounted in `src/app.js` (the Express app; `src/index.js` only sta
 
 | Method | Path | Description |
 |--------|------|-------------|
-| `GET` | `/` | Returns `"Server is running"` as plain text. |
-| `GET` | `/test-db` | Runs `SELECT NOW()`; `{ success: true, time }` or `500`. |
+| `GET` | `/api/health` | No auth, no DB call; returns 200 `{ ok: true }`. |
 | `GET` | `/api/auth/me` | Protected by `requireAuth`. Returns `{ user: { id, username } }`. |
 | `*` | (any unmatched) | `404` `{ error: "Not found" }`. |
 | — | error middleware | `entity.parse.failed` → `400 { error: "Invalid JSON" }`; otherwise `err.status || 500`. |
@@ -198,7 +198,7 @@ Source: `src/ws/index.js`
 
 **Infrastructure:**
 - No CORS middleware (no `cors` package installed).
-- No HTTPS enforcement (`secure: false` on the session cookie).
+- No request logging configured (`morgan` imported but not used); client IPs cannot be audited from logs. `Secure` flag on the session cookie only when env `COOKIE_SECURE` is `true`; Express `trust proxy` set only when env `TRUST_PROXY` is a positive integer (production uses `1`).
 - No `.env.example` or env-var documentation (`.env`/`.env.test` are in `.gitignore`).
 - No structured error logging (only `console.error`/`console.log`; `morgan` for HTTP).
 
