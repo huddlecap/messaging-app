@@ -505,3 +505,54 @@
   `sudo npx playwright install-deps chromium` before the smoke test can pass
 - Note: an e2e run needs `:3000` and `:5173` free, since
   `reuseExistingServer: false` fails on purpose rather than attaching
+
+## 49. Phase 4 step 1 — CI pipeline on GitHub Actions
+
+CONFIRMED = shown by a merge, a green run or command output. UNCONFIRMED = inferred or not verified.
+- #1-#2: practice branch/PR loop and .gitattributes (LF line endings). Exact split not recorded.
+- #3: backend Jest workflow using the TEST_DATABASE_URL secret.
+- #4: frontend Vitest job (16 tests). #10: `npm run build` in that job as the Linux filename-casing check.
+- #5: e2e cleanup guard. With CI=true the "differs from the dev .env host" checks are skipped (CI has no dev .env). "Pool host equals .env.test host" always applies.
+- #6: auth-flow spec registers its own second user (empty test DB shows "No other users yet"). Found when 4 of 5 e2e tests passed locally; confirmed by stashing the guard change.
+- #7: Playwright e2e job: needs backend, Chromium with --with-deps, artifacts on failure.
+- #8: workflow-level concurrency group, cancel-in-progress false: one run at a time on the shared test DB.
+- #9: npm cache on all setup-node steps (restore confirmed). The Chromium download is not cached (reason: recollection that Playwright's docs advise against it, UNCONFIRMED).
+- Branch protection on main: no direct pushes, required checks backend, frontend, e2e.
+- Decided against a single root `npm test` job: separate jobs are faster and clearer. The root command stays for local use.
+
+## 50. Phase 4 step 2 — Lost test database and 28P01 failures
+
+- CI's backend job failed with Postgres 28P01 (password authentication failed). First suspected cause: a mangled secret paste (UNCONFIRMED). Re-adding the secret did not fix it.
+- After the Neon password reset on `production`, local backend tests failed with 28P01 too. "They passed before the reset" is from memory. The idea that one reset changes a project-wide role password is not supported: Neon passwords seem to be per branch.
+- The old test database (the endpoint in backend/.env.test) was not in any Neon project (one project, one branch). Cause UNCONFIRMED.
+- Fix: new schema-only Neon branch `test`; backend/.env.test and the CI secret pointed at it. Local 41 tests and CI green (CONFIRMED).
+- Bad edit of .env.test: extra text before the URL gave an empty host and a misleading DEPTH_ZERO_SELF_SIGNED_CERT error. Fixed with a script that kept only the last postgresql:// part of the line.
+- A diagnostic command then printed the password into chat (the malformed URL put it in a printed field), and it was pasted once by hand. Rotation is planned for the end of the phase.
+- PRs #5 and #10 were pushed but not merged when assumed so (git pull left main unchanged). Local branch ci/e2e-guard was deleted before #5 merged; nothing was lost. The yellow compare banner is unreliable, and a purple Merged badge seen belonged to another PR. 
+
+## 51. Phase 4 step 3 — One origin: serve the frontend from the backend, cookies, hardening
+
+Recorded from a later session's summary (#11-#13).
+- #11: backend serves frontend/dist with an index.html fallback for paths not starting with /api or /ws. Removed GET /; added GET /api/health (no auth, no DB). Why: one same-origin service, so no CORS, sameSite strict keeps working, no proxy for /api and /ws.
+- #11 e2e failed: Playwright timed out waiting 60000 ms for the backend webServer. It waited on `/`, which 404s in CI once GET / is gone and no dist is built. Local runs passed only because a stale dist existed. Fix: webServer url is now /api/health.
+- #12: removed the unauthenticated GET /test-db, which returned raw error text on failure.
+- #13: cookie Secure flag from env COOKIE_SECURE (not NODE_ENV=production, which would skip the dev dependencies the Vite build needs); logout clears the cookie with the same options; trust proxy only when env TRUST_PROXY is a positive integer. Backend tests: 43.
+- Rate limits verified per client from two networks (reported). The exact proxy hop count is not proven.
+
+## 52. Phase 4 step 4 — Render deploy and the `live` database
+
+Recorded from a later session's summary (#14-#16).
+- Neon branch `live`: schema-only copy of `production` (users, messages, sessions; 0 users), checked with SQL.
+- Render free web service. Build: install backend and frontend dependencies, build the frontend. Start: `node backend/src/index.js`. Health check: /api/health. Env: DATABASE_URL (live), COOKIE_SECURE=true, TRUST_PROXY=1. First deploy succeeded; the smoke test (register, login, cookie flags, live messaging, reload) was reported working, no logs seen.
+- Deploy through Render Auto-Deploy "After CI Checks Pass" instead of a GitHub Actions deploy job. UNCONFIRMED that the setting is on and that the deploy waits for green CI.
+- Free-tier trade-offs: idle spin-down after 15 minutes (about 30 s cold start), restarts that drop sockets. The client reconnects and has an offline queue.
+- #14: page title "Messaging App", used to try the deploy loop. #15 and #16: docs updates.
+- #15's backend job failed once with ETIMEDOUT/ENETUNREACH to Postgres. The raw log was never seen; likely transient. Re-run, then merged with green required checks.
+
+## 53. Phase 4 step 5 — Open items and lessons
+
+- Password rotation is still pending: three independent resets (`production` -> backend/.env; `test` -> backend/.env.test and the secret TEST_DATABASE_URL; `live` -> Render DATABASE_URL). Do it before sharing the live URL or storing real user data. `live` and `test` were copied from branches that may share the leaked password (UNCONFIRMED).
+- Docs: SCOPE rotation line should say three resets; two missing spaces in Architecture_Decisions.md.
+- Optional: unused morgan import; skip CI on docs-only PRs (they run the full CI because required checks must report); ssl rejectUnauthorized hardening.
+- Carried over: 21 orphan e2e_ users in the dev DB; UserPicker never refetches /api/users; no logout button; deferred tests; new SSH key in WSL.
+- Lessons: ask for raw diffs and logs, not summaries. Before removing an endpoint, grep config and CI for readiness checks that use it. Local green is not proof, so test CI-only conditions (no dist, no .env, empty DB). Do not tick a docs box or claim a setting until you have seen it. 
